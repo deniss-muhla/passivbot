@@ -4,6 +4,15 @@ services:
     container_name: passivbot
     restart: unless-stopped
     volumes:
-      - ./:/app/
-    command: python passivbot.py binance_01 XMRUSDT live_configs/binance_default.json
-    
+      - ./:/usr/src/passivbot/
+    working_dir: /usr/src/passivbot
+    #command: /bin/sh -c "while sleep 1000; do :; done"
+    command: python3 src/backtest.py
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
