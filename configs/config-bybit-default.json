@@ -3,9 +3,9 @@
     "base_dir": "backtests",
     "compress_cache": true,
     "end_date": "now",
-    "exchange": "binance",
+    "exchange": "bybit",
     "start_date": "2024-11-05",
-    "starting_balance": 100000.0
+    "starting_balance": 100.0
   },
   "bot": {
     "long": {
@@ -64,38 +64,15 @@
     }
   },
   "live": {
-    "approved_coins": [
-      "HMSTRUSDT",
-      "MOODENGUSDT",
-      "CROUSDT",
-      "CATIUSDT",
-      "DOGSUSDT",
-      "NEIROETHUSDT",
-      "XRPUSDT",
-      "POPCATUSDT",
-      "ENAUSDT",
-      "GOATUSDT",
-      "GRASSUSDT",
-      "FOXYUSDT",
-      "SUNDOGUSDT",
-      "TIAUSDT",
-      "DOGEUSDT",
-      "JUPUSDT",
-      "TAOUSDT",
-      "RENDERUSDT",
-      "ADAUSDT",
-      "1000XUSDT",
-      "1000PEPEUSDT",
-      "DEEPUSDT"
-    ],
+    "approved_coins": [],
     "auto_gs": true,
     "coin_flags": {},
-    "empty_means_all_approved": false,
+    "empty_means_all_approved": true,
     "execution_delay_seconds": 2.0,
-    "filter_by_min_effective_cost": true,
+    "filter_by_min_effective_cost": false,
     "forced_mode_long": "",
     "forced_mode_short": "",
-    "ignored_coins": [],
+    "ignored_coins": { "long": [], "short": [] },
     "leverage": 10.0,
     "max_n_cancellations_per_batch": 5,
     "max_n_creations_per_batch": 3,
@@ -106,7 +83,7 @@
     "pnls_max_lookback_days": 30.0,
     "price_distance_threshold": 0.002,
     "time_in_force": "good_till_cancelled",
-    "user": "bybit_01"
+    "user": "bybit_02"
   },
   "optimize": {
     "bounds": {
@@ -161,16 +138,15 @@
       "short_unstuck_loss_allowance_pct": [0.0, 0.05],
       "short_unstuck_threshold": [0.4, 0.95]
     },
-    "compress_results_file": true,
     "crossover_probability": 0.7,
-    "iters": 30000,
+    "iters": 20000,
     "limits": {
       "lower_bound_drawdown_worst": 0.25,
       "lower_bound_equity_balance_diff_mean": 0.01,
       "lower_bound_loss_profit_ratio": 0.6
     },
     "mutation_probability": 0.2,
-    "n_cpus": 5,
+    "n_cpus": 12,
     "population_size": 500,
     "scoring": ["mdg", "sharpe_ratio"]
   }
