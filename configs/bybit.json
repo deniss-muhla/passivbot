@@ -523,7 +523,8 @@
       "DBRUSDT",
       "1000BONKUSDT",
       "DEGENUSDT",
-      "GFTUSDT"
+      "GFTUSDT",
+      "XVGUSDT"
     ],
     "leverage": 10.0,
     "max_n_cancellations_per_batch": 5,
