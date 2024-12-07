@@ -475,7 +475,7 @@
       "total_wallet_exposure_limit": 1.2788,
       "unstuck_close_pct": 0.05968,
       "unstuck_ema_dist": -0.027416,
-      "unstuck_loss_allowance_pct": 0.035915,
+      "unstuck_loss_allowance_pct": 0.01,
       "unstuck_threshold": 0.45572
     },
     "short": {
@@ -502,7 +502,7 @@
       "total_wallet_exposure_limit": 0.3,
       "unstuck_close_pct": 0.063395,
       "unstuck_ema_dist": -0.025704,
-      "unstuck_loss_allowance_pct": 0.04867,
+      "unstuck_loss_allowance_pct": 0.01,
       "unstuck_threshold": 0.58437
     }
   },
