@@ -69,7 +69,7 @@
     "coin_flags": {},
     "empty_means_all_approved": false,
     "execution_delay_seconds": 2.0,
-    "filter_by_min_effective_cost": true,
+    "filter_by_min_effective_cost": false,
     "forced_mode_long": "",
     "forced_mode_short": "",
     "ignored_coins": ["GFTUSDT", "DBRUSDT"],
