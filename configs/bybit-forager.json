@@ -2,10 +2,10 @@
   "backtest": {
     "base_dir": "backtests",
     "compress_cache": true,
-    "end_date": "2024-11-24",
+    "end_date": "2024-12-11",
     "exchanges": ["binance", "bybit"],
-    "start_date": "2024-11-20",
-    "starting_balance": 100000.0
+    "start_date": "2024-11-28",
+    "starting_balance": 400.0
   },
   "bot": {
     "long": {
