@@ -2,9 +2,9 @@
   "backtest": {
     "base_dir": "backtests",
     "compress_cache": true,
-    "end_date": "2024-12-13",
+    "end_date": "2024-12-11",
     "exchanges": ["bybit"],
-    "start_date": "2024-11-11",
+    "start_date": "2024-11-28",
     "starting_balance": 400
   },
   "bot": {
@@ -142,9 +142,9 @@
     "crossover_probability": 0.7,
     "iters": 30000,
     "limits": {
-      "lower_bound_drawdown_worst": 0.25,
+      "lower_bound_drawdown_worst": 0.125,
       "lower_bound_drawdown_worst_mean_1pct": 0.15,
-      "lower_bound_equity_balance_diff_mean": 0.02,
+      "lower_bound_equity_balance_diff_mean": 0.01,
       "lower_bound_loss_profit_ratio": 0.6
     },
     "mutation_probability": 0.2,

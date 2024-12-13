@@ -19,4 +19,4 @@ services:
       - ./broker_codes.hjson:/usr/src/passivbot/broker_codes.hjson:ro
     working_dir: /usr/src/passivbot
     command:
-      ["python", "src/optimize.py", "configs/bybit-forager-1.1-x2.1.json"]
+      ["python", "src/optimize.py", "configs/bybit-forager-1.2-2-min-loss.json"]
