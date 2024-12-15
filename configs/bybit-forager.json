@@ -39,7 +39,7 @@
       "close_grid_markup_range": 0.021275254640172075,
       "close_grid_min_markup": 0.019706341283390383,
       "close_grid_qty_pct": 0.49426993862394036,
-      "close_trailing_grid_ratio": -0.04624441257782608,
+      "close_trailing_grid_ratio": 0.0,
       "close_trailing_qty_pct": 0.3827091934116239,
       "close_trailing_retracement_pct": 0.012605035043707096,
       "close_trailing_threshold_pct": 0.025330534972694524,
