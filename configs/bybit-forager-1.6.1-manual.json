@@ -64,7 +64,7 @@
     }
   },
   "live": {
-    "approved_coins": { "long": [], "short": [] },
+    "approved_coins": { "long": ["BLZUSDT"], "short": ["BLZUSDT"] },
     "auto_gs": true,
     "coin_flags": {},
     "empty_means_all_approved": true,
