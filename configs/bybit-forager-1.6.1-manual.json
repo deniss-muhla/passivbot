@@ -64,7 +64,7 @@
     }
   },
   "live": {
-    "approved_coins": { "long": ["BLZUSDT"], "short": ["BLZUSDT"] },
+    "approved_coins": { "long": [], "short": [] },
     "auto_gs": true,
     "coin_flags": {},
     "empty_means_all_approved": true,
@@ -72,7 +72,10 @@
     "filter_by_min_effective_cost": true,
     "forced_mode_long": "",
     "forced_mode_short": "",
-    "ignored_coins": { "long": [], "short": [] },
+    "ignored_coins": {
+      "long": ["BLZUSDT", "AKROUSDT"],
+      "short": ["BLZUSDT", "AKROUSDT"]
+    },
     "leverage": 10,
     "max_n_cancellations_per_batch": 5,
     "max_n_creations_per_batch": 3,
