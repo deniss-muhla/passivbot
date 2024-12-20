@@ -75,7 +75,10 @@
     "filter_by_min_effective_cost": true,
     "forced_mode_long": "",
     "forced_mode_short": "",
-    "ignored_coins": { "long": [], "short": [] },
+    "ignored_coins": {
+      "long": ["BLZUSDT", "AKROUSDT", "BONDUSDT"],
+      "short": ["BLZUSDT", "AKROUSDT", "BONDUSDT"]
+    },
     "leverage": 10,
     "max_n_cancellations_per_batch": 5,
     "max_n_creations_per_batch": 3,
