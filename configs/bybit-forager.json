@@ -73,8 +73,8 @@
     "forced_mode_long": "",
     "forced_mode_short": "",
     "ignored_coins": {
-      "long": ["BLZUSDT", "AKROUSDT", "BONDUSDT", "AUCTIONUSDT"],
-      "short": ["BLZUSDT", "AKROUSDT", "BONDUSDT", "AUCTIONUSDT"]
+      "long": ["BLZUSDT", "AKROUSDT", "BONDUSDT"],
+      "short": ["BLZUSDT", "AKROUSDT", "BONDUSDT"]
     },
     "leverage": 10,
     "max_n_cancellations_per_batch": 5,
