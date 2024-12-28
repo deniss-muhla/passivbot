@@ -66,7 +66,7 @@
     "live": {
         "approved_coins": { "long": [], "short": [] },
         "auto_gs": true,
-        "coin_flags": {},
+        "coin_flags": { "GMTUSDT": "-sm m -lm n" },
         "empty_means_all_approved": true,
         "execution_delay_seconds": 2,
         "filter_by_min_effective_cost": true,
@@ -74,7 +74,7 @@
         "forced_mode_short": "",
         "ignored_coins": {
             "long": ["BLZUSDT", "AKROUSDT", "BONDUSDT"],
-            "short": ["BLZUSDT", "AKROUSDT", "BONDUSDT", "GMTUSDT"]
+            "short": ["BLZUSDT", "AKROUSDT", "BONDUSDT"]
         },
         "leverage": 10,
         "max_n_cancellations_per_batch": 5,
