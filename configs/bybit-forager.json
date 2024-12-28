@@ -66,15 +66,15 @@
     "live": {
         "approved_coins": { "long": [], "short": [] },
         "auto_gs": true,
-        "coin_flags": { "GMTUSDT": "-sm m -lm n" },
+        "coin_flags": {},
         "empty_means_all_approved": true,
         "execution_delay_seconds": 2,
         "filter_by_min_effective_cost": true,
         "forced_mode_long": "",
         "forced_mode_short": "",
         "ignored_coins": {
-            "long": ["BLZUSDT", "AKROUSDT", "BONDUSDT"],
-            "short": ["BLZUSDT", "AKROUSDT", "BONDUSDT"]
+            "long": ["BLZUSDT", "AKROUSDT", "BONDUSDT", "GMTUSDT", "PHAUSDT"],
+            "short": ["BLZUSDT", "AKROUSDT", "BONDUSDT", "GMTUSDT", "PHAUSDT"]
         },
         "leverage": 10,
         "max_n_cancellations_per_batch": 5,
