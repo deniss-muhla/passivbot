@@ -2,7 +2,7 @@
     "backtest": {
         "base_dir": "backtests",
         "compress_cache": true,
-        "end_date": "2024-12-30",
+        "end_date": "2024-12-31",
         "exchanges": ["bybit"],
         "start_date": "2024-10-01",
         "starting_balance": 500
