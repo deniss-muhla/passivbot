@@ -2,9 +2,9 @@
     "backtest": {
         "base_dir": "backtests",
         "compress_cache": true,
-        "end_date": "2024-12-30",
+        "end_date": "2025-01-09",
         "exchanges": ["bybit"],
-        "start_date": "2024-12-16",
+        "start_date": "2025-01-06",
         "starting_balance": 500
     },
     "bot": {
@@ -73,14 +73,14 @@
         "forced_mode_long": "",
         "forced_mode_short": "",
         "ignored_coins": {
-            "long": ["BLZUSDT", "AKROUSDT", "BONDUSDT", "PHAUSDT", "GRIFFAINUSDT", "DARUSDT", "RIFSOLUSDT"],
-            "short": ["BLZUSDT", "AKROUSDT", "BONDUSDT", "PHAUSDT", "GRIFFAINUSDT", "DARUSDT", "RIFSOLUSDT"]
+            "long": ["BLZUSDT", "AKROUSDT", "BONDUSDT"],
+            "short": ["BLZUSDT", "AKROUSDT", "BONDUSDT"]
         },
         "leverage": 10,
         "max_n_cancellations_per_batch": 5,
         "max_n_creations_per_batch": 3,
         "max_n_restarts_per_day": 10,
-        "minimum_coin_age_days": 5,
+        "minimum_coin_age_days": 15,
         "ohlcvs_1m_rolling_window_days": 4,
         "ohlcvs_1m_update_after_minutes": 10,
         "pnls_max_lookback_days": 30,
