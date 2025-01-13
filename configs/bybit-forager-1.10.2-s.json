@@ -2,9 +2,9 @@
     "backtest": {
         "base_dir": "backtests",
         "compress_cache": true,
-        "end_date": "2024-12-30",
+        "end_date": "2025-01-13",
         "exchanges": ["bybit"],
-        "start_date": "2024-12-16",
+        "start_date": "2024-10-01",
         "starting_balance": 500
     },
     "bot": {
@@ -64,7 +64,10 @@
         }
     },
     "live": {
-        "approved_coins": { "long": [], "short": [] },
+        "approved_coins": {
+            "long": [],
+            "short": []
+        },
         "auto_gs": true,
         "coin_flags": {},
         "empty_means_all_approved": true,
@@ -72,17 +75,14 @@
         "filter_by_min_effective_cost": true,
         "forced_mode_long": "",
         "forced_mode_short": "",
-        "ignored_coins": {
-            "long": [],
-            "short": []
-        },
+        "ignored_coins": { "long": [], "short": [] },
         "leverage": 10,
         "max_n_cancellations_per_batch": 5,
         "max_n_creations_per_batch": 3,
         "max_n_restarts_per_day": 10,
-        "minimum_coin_age_days": 5,
+        "minimum_coin_age_days": 15,
         "ohlcvs_1m_rolling_window_days": 4,
-        "ohlcvs_1m_update_after_minutes": 10,
+        "ohlcvs_1m_update_after_minutes": 15,
         "pnls_max_lookback_days": 30,
         "price_distance_threshold": 0.002,
         "time_in_force": "good_till_cancelled",
