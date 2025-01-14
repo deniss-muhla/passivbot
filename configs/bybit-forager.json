@@ -60,7 +60,7 @@
             "unstuck_close_pct": 1.75,
             "unstuck_ema_dist": 0.05,
             "unstuck_loss_allowance_pct": 0.75,
-            "unstuck_threshold": 0.025
+            "unstuck_threshold": 0.25
         }
     },
     "live": {
