@@ -57,10 +57,10 @@
             "filter_rolling_window": 110,
             "n_positions": 10.4,
             "total_wallet_exposure_limit": 0.6344,
-            "unstuck_close_pct": 0.016,
+            "unstuck_close_pct": 0.018,
             "unstuck_ema_dist": -0.01,
             "unstuck_loss_allowance_pct": 0.1,
-            "unstuck_threshold": 0.15
+            "unstuck_threshold": 0.18
         }
     },
     "live": {
