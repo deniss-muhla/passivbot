@@ -1414,7 +1414,7 @@ class Passivbot:
 
     def calc_unstucking_close(self, ideal_orders):
         stuck_positions =  []
-        pnls_cumsum = [self.balance * 0.125, self.balance * 0.125] #STOP: np.array([x["pnl"] for x in self.pnls]).cumsum()
+        pnls_cumsum = np.array([self.balance * 0.125, self.balance * 0.125]) #STOP: np.array([x["pnl"] for x in self.pnls]).cumsum()
         unstuck_allowances = {"long": 0.0, "short": 0.0}
         for symbol in self.positions:
             for pside in ["long", "short"]:
