@@ -1430,7 +1430,7 @@ class Passivbot:
                     )
                     if (
                         self.live_configs[symbol][pside]["wallet_exposure_limit"] == 0.0
-                        or wallet_exposure / self.live_configs[symbol][pside]["wallet_exposure_limit"]
+                        or wallet_exposure #STOP: or wallet_exposure / self.live_configs[symbol][pside]["wallet_exposure_limit"]
                         > self.live_configs[symbol][pside]["unstuck_threshold"]
                     ):
                         unstuck_allowance = (
