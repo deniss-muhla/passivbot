@@ -4,7 +4,7 @@
         "compress_cache": true,
         "end_date": "2025-01-14",
         "exchanges": ["bybit"],
-        "start_date": "2025-01-01",
+        "start_date": "2024-10-01",
         "starting_balance": 500
     },
     "bot": {
@@ -30,7 +30,7 @@
             "filter_rolling_window": 100,
             "n_positions": 0,
             "total_wallet_exposure_limit": 0,
-            "unstuck_close_pct": 1.75,
+            "unstuck_close_pct": 0.001,
             "unstuck_ema_dist": 0.05,
             "unstuck_loss_allowance_pct": 0.75,
             "unstuck_threshold": 0.025
