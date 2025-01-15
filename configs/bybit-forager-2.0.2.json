@@ -51,7 +51,7 @@
             "entry_initial_ema_dist": -0.05,
             "entry_initial_qty_pct": 0.05,
             "entry_trailing_grid_ratio": 0.5,
-            "entry_trailing_retracement_pct": 0.005,
+            "entry_trailing_retracement_pct": -1,
             "entry_trailing_threshold_pct": 0.25,
             "filter_relative_volume_clip_pct": 0.5,
             "filter_rolling_window": 100,
