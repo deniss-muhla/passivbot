@@ -33,7 +33,7 @@
             "unstuck_close_pct": 1,
             "unstuck_ema_dist": -0.05,
             "unstuck_loss_allowance_pct": 1,
-            "unstuck_threshold": 1
+            "unstuck_threshold": 0.27
         },
         "short": {
             "close_grid_markup_range": 0.02,
@@ -60,7 +60,7 @@
             "unstuck_close_pct": 1,
             "unstuck_ema_dist": -0.05,
             "unstuck_loss_allowance_pct": 1,
-            "unstuck_threshold": 1
+            "unstuck_threshold": 0.27
         }
     },
     "live": {
