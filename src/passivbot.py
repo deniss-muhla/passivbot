@@ -1414,8 +1414,7 @@ class Passivbot:
 
     def calc_unstucking_close(self, ideal_orders):
         stuck_positions =  []
-        pnls_cumsum = np.array([self.balance * 0.125, self.balance * 0.125]) #STOP: np.array([x["pnl"] for x in self.pnls]).cumsum()
-        unstuck_allowances = {"long": 0.0, "short": 0.0}
+        pnls_cumsum = np.array([x["pnl"] for x in self.pnls]).cumsum()
         for symbol in self.positions:
             for pside in ["long", "short"]:
                 if (
@@ -1430,28 +1429,15 @@ class Passivbot:
                     )
                     if (
                         self.live_configs[symbol][pside]["wallet_exposure_limit"] == 0.0
-                        or wallet_exposure #STOP: or wallet_exposure / self.live_configs[symbol][pside]["wallet_exposure_limit"]
+                        or wallet_exposure / self.live_configs[symbol][pside]["wallet_exposure_limit"]
                         > self.live_configs[symbol][pside]["unstuck_threshold"]
                     ):
-                        unstuck_allowance = (
-                            pbr.calc_auto_unstuck_allowance(
-                                self.balance,
-                                self.config["bot"][pside]["unstuck_loss_allowance_pct"]
-                                * self.config["bot"][pside]["total_wallet_exposure_limit"],
-                                pnls_cumsum.max(),
-                                pnls_cumsum[-1],
-                            )
-                            if len(pnls_cumsum) > 0
-                            else 0.0
+                        pprice_diff = calc_pprice_diff(
+                            pside,
+                            self.positions[symbol][pside]["price"],
+                            self.get_last_price(symbol),
                         )
-                        unstuck_allowances[pside] = unstuck_allowance
-                        if unstuck_allowance > 0.0:
-                            pprice_diff = calc_pprice_diff(
-                                pside,
-                                self.positions[symbol][pside]["price"],
-                                self.get_last_price(symbol),
-                            )
-                            stuck_positions.append((symbol, pside, pprice_diff))
+                        stuck_positions.append((symbol, pside, pprice_diff))
         if not stuck_positions:
             return "", (0.0, 0.0, "")
         stuck_positions.sort(key=lambda x: x[2])
@@ -1503,14 +1489,13 @@ class Passivbot:
                         close_qty,
                         self.c_mults[symbol],
                     )
-                    pnl_if_closed_abs = abs(pnl_if_closed)
-                    if pnl_if_closed < 0.0 and pnl_if_closed_abs > unstuck_allowances[pside]:
+                    if pnl_if_closed < 0.0:
                         close_qty = -min(
                             self.positions[symbol][pside]["size"],
                             max(
                                 min_entry_qty,
                                 pbr.round_dn(
-                                    abs(close_qty) * (unstuck_allowances[pside] / pnl_if_closed_abs),
+                                    abs(close_qty),
                                     self.qty_steps[symbol],
                                 ),
                             ),
@@ -1563,14 +1548,13 @@ class Passivbot:
                         close_qty,
                         self.c_mults[symbol],
                     )
-                    pnl_if_closed_abs = abs(pnl_if_closed)
-                    if pnl_if_closed < 0.0 and pnl_if_closed_abs > unstuck_allowances[pside]:
+                    if pnl_if_closed < 0.0:
                         close_qty = min(
                             abs(self.positions[symbol][pside]["size"]),
                             max(
                                 min_entry_qty,
                                 pbr.round_dn(
-                                    close_qty * (unstuck_allowances[pside] / pnl_if_closed_abs),
+                                    close_qty,
                                     self.qty_steps[symbol],
                                 ),
                             ),

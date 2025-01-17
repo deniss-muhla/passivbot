@@ -1021,63 +1021,44 @@ impl<'a> Backtest<'a> {
 
     fn calc_unstucking_close(&mut self, k: usize) -> (usize, usize, Order) {
         let mut stuck_positions = Vec::new();
-        let mut unstuck_allowances = (0.0, 0.0);
 
         if self.bot_params_pair.long.unstuck_loss_allowance_pct > 0.0 {
-            unstuck_allowances.0 = calc_auto_unstuck_allowance(
-                self.balance,
-                self.bot_params_pair.long.unstuck_loss_allowance_pct
-                    * self.bot_params_pair.long.total_wallet_exposure_limit,
-                self.pnl_cumsum_max,
-                self.pnl_cumsum_running,
-            );
-            if unstuck_allowances.0 > 0.0 {
-                // Check long positions
-                for (&idx, position) in &self.positions.long {
-                    let wallet_exposure = calc_wallet_exposure(
-                        self.exchange_params_list[idx].c_mult,
-                        self.balance,
-                        position.size,
-                        position.price,
-                    );
-                    if wallet_exposure / self.bot_params_pair.long.wallet_exposure_limit
-                        > self.bot_params_pair.long.unstuck_threshold
-                    {
-                        let pprice_diff =
-                            calc_pprice_diff_int(LONG, position.price, self.hlcvs[[k, idx, CLOSE]]);
-                        stuck_positions.push((idx, LONG, pprice_diff));
-                    }
+            // Check long positions
+            for (&idx, position) in &self.positions.long {
+                let wallet_exposure = calc_wallet_exposure(
+                    self.exchange_params_list[idx].c_mult,
+                    self.balance,
+                    position.size,
+                    position.price,
+                );
+                if wallet_exposure / self.bot_params_pair.long.wallet_exposure_limit
+                    > self.bot_params_pair.long.unstuck_threshold
+                {
+                    let pprice_diff =
+                        calc_pprice_diff_int(LONG, position.price, self.hlcvs[[k, idx, CLOSE]]);
+                    stuck_positions.push((idx, LONG, pprice_diff));
                 }
             }
         }
 
         if self.bot_params_pair.short.unstuck_loss_allowance_pct > 0.0 {
-            unstuck_allowances.1 = calc_auto_unstuck_allowance(
-                self.balance,
-                self.bot_params_pair.short.unstuck_loss_allowance_pct
-                    * self.bot_params_pair.short.total_wallet_exposure_limit,
-                self.pnl_cumsum_max,
-                self.pnl_cumsum_running,
-            );
-            if unstuck_allowances.1 > 0.0 {
-                // Check short positions
-                for (&idx, position) in &self.positions.short {
-                    let wallet_exposure = calc_wallet_exposure(
-                        self.exchange_params_list[idx].c_mult,
-                        self.balance,
-                        position.size,
+            // Check short positions
+            for (&idx, position) in &self.positions.short {
+                let wallet_exposure = calc_wallet_exposure(
+                    self.exchange_params_list[idx].c_mult,
+                    self.balance,
+                    position.size,
+                    position.price,
+                );
+                if wallet_exposure / self.bot_params_pair.short.wallet_exposure_limit
+                    > self.bot_params_pair.short.unstuck_threshold
+                {
+                    let pprice_diff = calc_pprice_diff_int(
+                        SHORT,
                         position.price,
+                        self.hlcvs[[k, idx, CLOSE]],
                     );
-                    if wallet_exposure / self.bot_params_pair.short.wallet_exposure_limit
-                        > self.bot_params_pair.short.unstuck_threshold
-                    {
-                        let pprice_diff = calc_pprice_diff_int(
-                            SHORT,
-                            position.price,
-                            self.hlcvs[[k, idx, CLOSE]],
-                        );
-                        stuck_positions.push((idx, SHORT, pprice_diff));
-                    }
+                    stuck_positions.push((idx, SHORT, pprice_diff));
                 }
             }
         }
@@ -1126,8 +1107,7 @@ impl<'a> Backtest<'a> {
                                 close_qty,
                                 self.exchange_params_list[idx].c_mult,
                             );
-                            let pnl_if_closed_abs = pnl_if_closed.abs();
-                            if pnl_if_closed < 0.0 && pnl_if_closed_abs > unstuck_allowances.0 {
+                            if pnl_if_closed < 0.0 {
                                 // means unstuck allowance would be exceeded
                                 // reduce qty
                                 close_qty = -f64::min(
@@ -1135,8 +1115,7 @@ impl<'a> Backtest<'a> {
                                     f64::max(
                                         min_entry_qty,
                                         round_dn(
-                                            close_qty.abs()
-                                                * (unstuck_allowances.0 / pnl_if_closed_abs),
+                                            close_qty.abs(),
                                             self.exchange_params_list[idx].qty_step,
                                         ),
                                     ),
@@ -1192,8 +1171,7 @@ impl<'a> Backtest<'a> {
                                 close_qty,
                                 self.exchange_params_list[idx].c_mult,
                             );
-                            let pnl_if_closed_abs = pnl_if_closed.abs();
-                            if pnl_if_closed < 0.0 && pnl_if_closed_abs > unstuck_allowances.1 {
+                            if pnl_if_closed < 0.0 {
                                 // means unstuck allowance would be exceeded
                                 // reduce qty
                                 close_qty = f64::min(
@@ -1201,7 +1179,7 @@ impl<'a> Backtest<'a> {
                                     f64::max(
                                         min_entry_qty,
                                         round_dn(
-                                            close_qty * (unstuck_allowances.1 / pnl_if_closed_abs),
+                                            close_qty,
                                             self.exchange_params_list[idx].qty_step,
                                         ),
                                     ),
