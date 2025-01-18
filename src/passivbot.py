@@ -1413,8 +1413,9 @@ class Passivbot:
         return ideal_orders_f
 
     def calc_unstucking_close(self, ideal_orders):
-        stuck_positions =  []
+        stuck_positions = []
         pnls_cumsum = np.array([x["pnl"] for x in self.pnls]).cumsum()
+        unstuck_allowances = {"long": 0.0, "short": 0.0}
         for symbol in self.positions:
             for pside in ["long", "short"]:
                 if (
@@ -1432,12 +1433,25 @@ class Passivbot:
                         or wallet_exposure / self.live_configs[symbol][pside]["wallet_exposure_limit"]
                         > self.live_configs[symbol][pside]["unstuck_threshold"]
                     ):
-                        pprice_diff = calc_pprice_diff(
-                            pside,
-                            self.positions[symbol][pside]["price"],
-                            self.get_last_price(symbol),
+                        unstuck_allowance = (
+                            pbr.calc_auto_unstuck_allowance(
+                                self.balance,
+                                self.config["bot"][pside]["unstuck_loss_allowance_pct"]
+                                * self.config["bot"][pside]["total_wallet_exposure_limit"],
+                                pnls_cumsum.max(),
+                                pnls_cumsum[-1],
+                            )
+                            if len(pnls_cumsum) > 0
+                            else 0.0
                         )
-                        stuck_positions.append((symbol, pside, pprice_diff))
+                        unstuck_allowances[pside] = unstuck_allowance
+                        if unstuck_allowance > 0.0:
+                            pprice_diff = calc_pprice_diff(
+                                pside,
+                                self.positions[symbol][pside]["price"],
+                                self.get_last_price(symbol),
+                            )
+                            stuck_positions.append((symbol, pside, pprice_diff))
         if not stuck_positions:
             return "", (0.0, 0.0, "")
         stuck_positions.sort(key=lambda x: x[2])
@@ -1489,13 +1503,14 @@ class Passivbot:
                         close_qty,
                         self.c_mults[symbol],
                     )
-                    if pnl_if_closed < 0.0:
+                    pnl_if_closed_abs = abs(pnl_if_closed)
+                    if pnl_if_closed < 0.0 and pnl_if_closed_abs > unstuck_allowances[pside]:
                         close_qty = -min(
                             self.positions[symbol][pside]["size"],
                             max(
                                 min_entry_qty,
                                 pbr.round_dn(
-                                    abs(close_qty),
+                                    abs(close_qty) * (unstuck_allowances[pside] / pnl_if_closed_abs),
                                     self.qty_steps[symbol],
                                 ),
                             ),
@@ -1548,13 +1563,14 @@ class Passivbot:
                         close_qty,
                         self.c_mults[symbol],
                     )
-                    if pnl_if_closed < 0.0:
+                    pnl_if_closed_abs = abs(pnl_if_closed)
+                    if pnl_if_closed < 0.0 and pnl_if_closed_abs > unstuck_allowances[pside]:
                         close_qty = min(
                             abs(self.positions[symbol][pside]["size"]),
                             max(
                                 min_entry_qty,
                                 pbr.round_dn(
-                                    close_qty,
+                                    close_qty * (unstuck_allowances[pside] / pnl_if_closed_abs),
                                     self.qty_steps[symbol],
                                 ),
                             ),

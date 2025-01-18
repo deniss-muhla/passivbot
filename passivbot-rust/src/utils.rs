@@ -209,9 +209,10 @@ pub fn calc_auto_unstuck_allowance(
 ) -> f64 {
     // allow up to x% drop from balance peak for auto unstuck
 
-    let balance_peak = balance + (pnl_cumsum_max - pnl_cumsum_last);
-    let drop_since_peak_pct = balance / balance_peak - 1.0;
-    (balance_peak * (loss_allowance_pct + drop_since_peak_pct)).max(0.0)
+    // STOP: let balance_peak = balance + (pnl_cumsum_max - pnl_cumsum_last);
+    // STOP: let drop_since_peak_pct = balance / balance_peak - 1.0;
+    // STOP: (balance_peak * (loss_allowance_pct + drop_since_peak_pct)).max(0.0)
+    (balance * loss_allowance_pct).max(0.0)
 }
 
 pub fn calc_ema_price_bid(
