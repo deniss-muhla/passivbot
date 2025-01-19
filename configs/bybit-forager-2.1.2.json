@@ -49,18 +49,18 @@
             "entry_grid_spacing_pct": 0,
             "entry_grid_spacing_weight": 0,
             "entry_initial_ema_dist": -0.025,
-            "entry_initial_qty_pct": 0.25,
+            "entry_initial_qty_pct": 0.125,
             "entry_trailing_grid_ratio": 1,
             "entry_trailing_retracement_pct": -1,
             "entry_trailing_threshold_pct": 0.05,
             "filter_relative_volume_clip_pct": 0.5,
             "filter_rolling_window": 100,
             "n_positions": 4,
-            "total_wallet_exposure_limit": 0.2,
+            "total_wallet_exposure_limit": 0.4,
             "unstuck_close_pct": 0.75,
             "unstuck_ema_dist": -0.05,
             "unstuck_loss_allowance_pct": 1,
-            "unstuck_threshold": 0.27
+            "unstuck_threshold": 0.6
         }
     },
     "live": {
