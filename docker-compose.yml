@@ -1,22 +1,22 @@
 services:
-  passivbot_trader:
-    container_name: passivbot
-    image: passivbot
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - ./backtests:/usr/src/passivbot/backtests
-      - ./cache:/usr/src/passivbot/cache
-      - ./caches:/usr/src/passivbot/caches
-      - ./configs:/usr/src/passivbot/configs
-      - ./historical_data:/usr/src/passivbot/historical_data
-      - ./notebooks:/usr/src/passivbot/notebooks
-      - ./optimize_results:/usr/src/passivbot/optimize_results
-      - ./optimize_results_analysis:/usr/src/passivbot/optimize_results_analysis
-      - ./src:/usr/src/passivbot/src
-      - ./api-keys.json:/usr/src/passivbot/api-keys.json:ro
-      - ./broker_codes.hjson:/usr/src/passivbot/broker_codes.hjson:ro
-    working_dir: /usr/src/passivbot
-    command: ["python", "src/main.py", "configs/bybit-forager.json"]
-    restart: always
+    passivbot_trader:
+        container_name: passivbot
+        image: passivbot
+        build:
+            context: .
+            dockerfile: Dockerfile
+        volumes:
+            - ./backtests:/usr/src/passivbot/backtests
+            - ./cache:/usr/src/passivbot/cache
+            - ./caches:/usr/src/passivbot/caches
+            - ./configs:/usr/src/passivbot/configs
+            - ./historical_data:/usr/src/passivbot/historical_data
+            - ./notebooks:/usr/src/passivbot/notebooks
+            - ./optimize_results:/usr/src/passivbot/optimize_results
+            - ./optimize_results_analysis:/usr/src/passivbot/optimize_results_analysis
+            - ./src:/usr/src/passivbot/src
+            - ./api-keys.json:/usr/src/passivbot/api-keys.json:ro
+            - ./broker_codes.hjson:/usr/src/passivbot/broker_codes.hjson:ro
+        working_dir: /usr/src/passivbot
+        command: ["python", "src/main.py", "configs/bybit.json"]
+        restart: always
