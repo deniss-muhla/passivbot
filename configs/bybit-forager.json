@@ -76,8 +76,8 @@
         "forced_mode_long": "",
         "forced_mode_short": "",
         "ignored_coins": {
-            "long": ["TRUMPUSDT", "MELANIAUSDT"],
-            "short": ["TRUMPUSDT", "MELANIAUSDT"]
+            "long": ["TRUMPUSDT", "MELANIAUSDT", "MICHIUSDT"],
+            "short": ["TRUMPUSDT", "MELANIAUSDT", "MICHIUSDT"]
         },
         "leverage": 10,
         "max_n_cancellations_per_batch": 5,
