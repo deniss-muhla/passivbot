@@ -9,6 +9,7 @@
         "ohlcvs",
         "passivbot",
         "pnls",
+        "pumpdump",
         "retracement"
     ],
     "editor.tabSize": 4,
