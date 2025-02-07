@@ -18,5 +18,5 @@ services:
             - ./api-keys.json:/usr/src/passivbot/api-keys.json:ro
             - ./broker_codes.hjson:/usr/src/passivbot/broker_codes.hjson:ro
         working_dir: /usr/src/passivbot
-        command: ["python", "src/backtest.py", "configs/bybit/bybit-0.1.0.json", "--disable_plotting"]
+        command: ["python", "src/backtest.py", "configs/bybit/bybit-0.1.1.json", "--disable_plotting"]
         #command: ["python", "src/backtest.py", "configs/bybit/bybit-0.1.0.json"]
