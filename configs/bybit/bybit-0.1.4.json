@@ -68,7 +68,7 @@
         }
     },
     "live": {
-        "approved_coins": ["FARTCOIN", "BONK", "SHIB", "KDA", "EGLD", "OP", "HYPE", "LINK"],
+        "approved_coins": ["FARTCOIN", "BONK", "SHIB", "KDA", "EGLD", "OP", "LINK"],
         "auto_gs": true,
         "coin_flags": {},
         "empty_means_all_approved": true,
