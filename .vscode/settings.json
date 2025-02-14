@@ -10,7 +10,8 @@
         "ohlcvs",
         "passivbot",
         "pnls",
-        "retracement"
+        "retracement",
+        "sortino"
     ],
     "editor.tabSize": 4,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
