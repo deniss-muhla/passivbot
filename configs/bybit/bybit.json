@@ -52,7 +52,7 @@
             "entry_grid_double_down_factor": 1.7581163532533755,
             "entry_grid_spacing_pct": 0.02870523585437338,
             "entry_grid_spacing_weight": 0.5932509081417318,
-            "entry_initial_ema_dist": -0.07045145277165452,
+            "entry_initial_ema_dist": -0.06,
             "entry_initial_qty_pct": 0.04191822639696738,
             "entry_trailing_grid_ratio": -0.2004948796309051,
             "entry_trailing_retracement_pct": 0.05181528002319875,
@@ -68,7 +68,7 @@
         }
     },
     "live": {
-        "approved_coins": ["FARTCOIN", "BONK", "SHIB", "KDA", "EGLD", "OP", "LINK"],
+        "approved_coins": ["FARTCOIN", "BONK", "SHIB", "KDA", "EGLD", "OP", "HYPE", "LINK"],
         "auto_gs": true,
         "coin_flags": {},
         "empty_means_all_approved": true,
