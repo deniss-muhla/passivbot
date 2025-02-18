@@ -31,7 +31,7 @@
             "entry_trailing_threshold_pct": 0.06250387497460184,
             "filter_relative_volume_clip_pct": 0.14294677214882218,
             "filter_rolling_window": 304.3681932260192,
-            "n_positions": 1.6338929131034803,
+            "n_positions": 3.6338929131034803,
             "total_wallet_exposure_limit": 0.49625310706338566,
             "unstuck_close_pct": 0.6435474114360181,
             "unstuck_ema_dist": -0.015383087843960478,
@@ -59,7 +59,7 @@
             "entry_trailing_threshold_pct": 0.07118065269029904,
             "filter_relative_volume_clip_pct": 0.42890542045181207,
             "filter_rolling_window": 218.4159091989017,
-            "n_positions": 1.6770903352950564,
+            "n_positions": 3.6770903352950564,
             "total_wallet_exposure_limit": 0.4938711184383842,
             "unstuck_close_pct": 0.6312953509670763,
             "unstuck_ema_dist": -0.006482769436669399,
@@ -68,7 +68,7 @@
         }
     },
     "live": {
-        "approved_coins": ["FARTCOIN", "HYPE"],
+        "approved_coins": ["FARTCOIN", "BONK", "SHIB", "KDA", "EGLD", "OP", "HYPE", "LINK"],
         "auto_gs": true,
         "coin_flags": {},
         "empty_means_all_approved": true,
