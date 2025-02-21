@@ -7,7 +7,7 @@
         "exchanges": ["bybit"],
         "gap_tolerance_ohlcvs_minutes": 120.0,
         "start_date": "2025-01-27",
-        "starting_balance": 460
+        "starting_balance": 500
     },
     "bot": {
         "long": {
@@ -68,7 +68,7 @@
         }
     },
     "live": {
-        "approved_coins": ["FARTCOIN", "OP", "HYPE"],
+        "approved_coins": ["FARTCOIN", "OP"],
         "auto_gs": true,
         "coin_flags": {},
         "empty_means_all_approved": true,
