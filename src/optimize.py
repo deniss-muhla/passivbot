@@ -379,6 +379,7 @@ class Evaluator:
             "equity_balance_diff_pos_max",
             "equity_balance_diff_pos_mean",
             "loss_profit_ratio",
+            "position_held_hours_max",
         ]
         i = len(keys) + 1
         for key in keys:
@@ -685,6 +686,11 @@ async def main():
                     for z, x in enumerate(starting_individuals[i])
                 ]
                 population[i] = creator.Individual(adjusted)
+
+            for i in range(len(starting_individuals), len(population) // 2):
+                mutant = deepcopy(population[np.random.choice(range(len(starting_individuals)))])
+                toolbox.mutate(mutant)
+                population[i] = mutant
 
         logging.info(f"Initial population size: {len(population)}")
 
