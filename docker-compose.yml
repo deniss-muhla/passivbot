@@ -18,5 +18,5 @@ services:
             - ./api-keys.json:/usr/src/passivbot/api-keys.json:ro
             - ./broker_codes.hjson:/usr/src/passivbot/broker_codes.hjson:ro
         working_dir: /usr/src/passivbot
-        command: ["python", "src/main.py", "configs/bybit/bybit.json"]
+        command: ["python", "src/main.py", "configs/bybit.json"]
         restart: always

@@ -68,9 +68,13 @@
         }
     },
     "live": {
-        "approved_coins": ["FARTCOIN", "OP", "HYPE"],
+        "approved_coins": "configs/bybit/symbols.json",
         "auto_gs": true,
-        "coin_flags": {},
+        "coin_flags": {
+            "FARTCOIN": "-lm n -sm n -lc bybit/symbols/FARTCOIN-0.1.0.json",
+            "HYPE": "-lm n -sm n -lc bybit/symbols/HYPE-0.1.0.json",
+            "OP": "-lm n -sm n -lc bybit/symbols/OP-0.1.0.json"
+        },
         "empty_means_all_approved": true,
         "execution_delay_seconds": 2.0,
         "filter_by_min_effective_cost": true,

@@ -18,4 +18,4 @@ services:
             - ./api-keys.json:/usr/src/passivbot/api-keys.json:ro
             - ./broker_codes.hjson:/usr/src/passivbot/broker_codes.hjson:ro
         working_dir: /usr/src/passivbot
-        command: ["python", "src/optimize.py", "configs/bybit/symbols/bybit-HYPE-0.1.0.json"]
+        command: ["python", "src/optimize.py", "configs/bybit/bybit-0.1.2.json"]

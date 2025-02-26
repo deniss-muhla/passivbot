@@ -437,7 +437,9 @@ class Passivbot:
                         )
                         if os.path.exists(path2):
                             loaded = load_config(path2, verbose=False)
-                            logging.info(f"successfully loaded {path2} for {symbol}")
+                            logging.info(
+                                f"successfully loaded {path2} for {symbol}"
+                            )
                         else:
                             raise
                     for pside in loaded["bot"]:
