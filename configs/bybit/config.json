@@ -71,9 +71,9 @@
         "approved_coins": ["FARTCOIN", "OP", "HYPE"],
         "auto_gs": true,
         "coin_flags": {
-            "FARTCOIN": "-lm n -sm n -lc bybit/symbols/FARTCOIN.json",
-            "HYPE": "-lm n -sm n -lc bybit/symbols/HYPE.json",
-            "OP": "-lm n -sm n -lc bybit/symbols/OP.json"
+            "FARTCOIN": "-lm n -sm n -lc symbols/FARTCOIN.json",
+            "HYPE": "-lm n -sm n -lc symbols/HYPE.json",
+            "OP": "-lm n -sm n -lc symbols/OP.json"
         },
         "empty_means_all_approved": true,
         "execution_delay_seconds": 2.0,
