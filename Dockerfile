@@ -1,4 +1,4 @@
-FROM python:3.8.20-slim
+FROM python:3.9-slim
 
 WORKDIR /usr/src/passivbot
 
@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
     libssl-dev \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/* \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
     && . $HOME/.cargo/env \
@@ -32,5 +34,12 @@ WORKDIR /usr/src/passivbot/passivbot-rust
 RUN maturin build --release
 
 RUN pip install target/wheels/passivbot_rust-*.whl
+
+WORKDIR /usr/src/passivbot
+
+COPY passivbot-configurator/package.json /usr/src/passivbot/passivbot-configurator/package.json
+COPY passivbot-configurator/package-lock.json /usr/src/passivbot/passivbot-configurator/package-lock.json
+WORKDIR /usr/src/passivbot/passivbot-configurator
+RUN npm install
 
 WORKDIR /usr/src/passivbot

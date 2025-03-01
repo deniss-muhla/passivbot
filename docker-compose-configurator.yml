@@ -1,0 +1,10 @@
+services:
+    passivbot_configurator:
+        container_name: passivbot-configurator
+        build:
+            context: .
+            dockerfile: Dockerfile
+        volumes:
+            - ./passivbot-configurator:/usr/src/passivbot/passivbot-configurator
+        working_dir: /usr/src/passivbot/passivbot-configurator
+        command: ["npm", "run", "start"]

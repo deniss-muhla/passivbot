@@ -3,15 +3,21 @@
         "backtest",
         "backtests",
         "bybit",
+        "configurator",
         "FARTCOIN",
         "hjson",
+        "jupyterlab",
         "lookback",
+        "maturin",
         "mcap",
         "ohlcvs",
         "passivbot",
         "pnls",
         "pumpdump",
-        "retracement"
+        "retracement",
+        "rustup",
+        "setuptools",
+        "tlsv"
     ],
     "editor.tabSize": 4,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
