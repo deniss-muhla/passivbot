@@ -360,3 +360,5 @@ configs/live/multigrid.json
 reports/*
 
 passivbot-configurator/node_modules
+configs/**/backtest
+configs/**/optimization

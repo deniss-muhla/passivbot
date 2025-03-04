@@ -122,8 +122,8 @@ export interface OptimizeConfig {
     scoring: string[];
 }
 
-export interface Config {
-    backtest: {
+export interface ConfigFile {
+    backtest?: {
         base_dir: string;
         compress_cache: boolean;
         end_date: string;
@@ -131,10 +131,16 @@ export interface Config {
         start_date: string;
         starting_balance: number;
     };
-    bot: {
+    bot?: {
         long: BotConfig;
         short: BotConfig;
     };
-    live: LiveConfig;
-    optimize: OptimizeConfig;
+    live?: LiveConfig;
+    optimize?: OptimizeConfig;
+}
+
+export interface ConfigFileOptimizationResult {
+    optimizationResultsFilePath: string;
+    optimizationAnalysisFilePath: string;
+    optimizedConfigFilePath: string;
 }

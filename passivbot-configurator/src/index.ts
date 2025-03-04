@@ -1,24 +1,34 @@
 import * as path from "path";
-import { loadConfig, createConfigFolder, createNewConfig, saveConfig, optimizeConfig } from "./utils";
+import { PATHS } from "./utils";
+import { Config } from "./config";
 
-const templateConfigPath = path.resolve(__dirname, "../config/template.json");
-const templateConfig = loadConfig(templateConfigPath);
-
-const configName = "bybit";
+const configPath = path.resolve(PATHS.CONFIGS, "bybit");
 const configSymbols = ["FARTCOIN", "HYPE", "OP"];
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit.json");
 
 (async () => {
-    // 1. Create config folder
-    const newConfigFolder = createConfigFolder(configName);
+    const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
+    config.setSymbols(configSymbols);
+    config.setOptimizationBoundsNPositions(configSymbols.length);
+    config.setDateRange(30);
+    config.save();
+    await config.optimize();
+    config.applyOptimizedConfig();
+    config.save();
+    await config.backtest();
 
-    // 2 & 3. Duplicate from template, place symbols
-    const newConfig = createNewConfig(templateConfig, configSymbols);
-
-    // 4. Save new config
-    const configPath = saveConfig(newConfigFolder, newConfig);
-
-    // 5. Optimize config
-    const { long, short } = await optimizeConfig(configPath);
-    console.log("Optimized long:", long);
-    console.log("Optimized short:", short);
+    for (const symbol of configSymbols) {
+        const symbolConfig = Config.createFromTemplateConfigFile(symbol, configPath, templateConfigFilePath);
+        symbolConfig.setSymbols([symbol]);
+        symbolConfig.setDateRange(30);
+        symbolConfig.setOptimizationGlobalBounds(config.configFile);
+        symbolConfig.setOptimizationBoundsNPositions(configSymbols.length);
+        symbolConfig.save();
+        await symbolConfig.optimize();
+        symbolConfig.applyOptimizedConfig();
+        symbolConfig.save();
+        await symbolConfig.backtest();
+        config.linkSymbolConfig(symbol);
+        config.save();
+    }
 })();
