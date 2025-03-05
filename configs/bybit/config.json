@@ -74,8 +74,8 @@
             "PEPE": "-lm n -sm n -lc PEPE.json",
             "HYPE": "-lm n -sm n -lc HYPE.json",
             "USUAL": "-lm n -sm n -lc USUAL.json",
-            "OP": "-lm t -sm t",
-            "FARTCOIN": "-lm t -sm t"
+            "OP": "-lm m -sm m",
+            "FARTCOIN": "-lm m -sm m"
         },
         "empty_means_all_approved": true,
         "execution_delay_seconds": 2,
