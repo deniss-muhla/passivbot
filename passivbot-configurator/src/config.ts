@@ -63,10 +63,10 @@ export class Config {
         applyOptimizationGlobalBounds(configFile, this.configFile);
     }
 
-    public setOptimizationBoundsNPositions(nPositions: number): void {
+    public setOptimizationBoundsNPositions(nPositionsMin: number, nPositionsMax?: number): void {
         if (this.configFile.optimize) {
-            this.configFile.optimize.bounds.long_n_positions = [nPositions, nPositions];
-            this.configFile.optimize.bounds.short_n_positions = [nPositions, nPositions];
+            this.configFile.optimize.bounds.long_n_positions = [nPositionsMin, nPositionsMax || nPositionsMin];
+            this.configFile.optimize.bounds.short_n_positions = [nPositionsMin, nPositionsMax || nPositionsMin];
         }
     }
 

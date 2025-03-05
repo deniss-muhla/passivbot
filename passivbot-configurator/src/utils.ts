@@ -175,6 +175,7 @@ export function applyOptimizationGlobalBounds(srcConfigFile: ConfigFile, destCon
                 "total_wallet_exposure_limit",
                 "unstuck_close_pct",
                 "unstuck_loss_allowance_pct",
+                "n_positions",
             ].forEach((key) => {
                 if (destConfigFile.optimize && destConfigFile.optimize.bounds) {
                     if (srcConfigFile.bot && (side === "long" || side === "short")) {
