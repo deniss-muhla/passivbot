@@ -5,7 +5,7 @@ import { writeJSON } from "fs-extra";
 
 // TODO: "ADA"
 // TODO: "SUI" ?+ "ENA"
-const version = "2.1.3";
+const version = "2.1.4";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 const configSymbols = ["PEPE", "HYPE", "USUAL"];
 const dateRange = 30;
