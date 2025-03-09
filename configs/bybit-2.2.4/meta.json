@@ -1,13 +1,14 @@
 {
-    "version": "2.1.3",
+    "version": "2.1.2",
     "symbols": [
         "PEPE",
         "HYPE",
-        "USUAL"
+        "USUAL",
+        "ENA"
     ],
     "dateRange": 30,
     "nPositions": [
-        2.5,
-        3.4
+        3.5,
+        4.4
     ]
 }
