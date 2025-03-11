@@ -11,7 +11,7 @@ const configSymbols = ["PEPE", "HYPE", "USUAL"];
 const dateRange = 30;
 const nPositionsMin = 2.5;
 const nPositionsMax = 3.4;
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.0.0.json");
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.0.1.json");
 
 (async () => {
     const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
@@ -51,6 +51,7 @@ const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.0.
             symbols: configSymbols,
             dateRange,
             nPositions: [nPositionsMin, nPositionsMax],
+            templateConfigFilePath,
         },
         { spaces: 4 }
     );
