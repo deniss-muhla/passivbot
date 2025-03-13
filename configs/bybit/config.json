@@ -71,7 +71,7 @@
         "approved_coins": ["PEPE", "HYPE", "USUAL", "AVAX"],
         "auto_gs": true,
         "coin_flags": {
-            "PEPE": "-lm n -sm m -lc PEPE.json",
+            "PEPE": "-lm m -sm m -lc PEPE.json",
             "HYPE": "-lm n -sm n -lc HYPE.json",
             "USUAL": "-lm n -sm n -lc USUAL.json",
             "AVAX": "-lm n -sm n -lc AVAX.json"
