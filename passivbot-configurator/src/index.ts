@@ -3,15 +3,15 @@ import { PATHS } from "./utils";
 import { Config } from "./config";
 import { writeJSON } from "fs-extra";
 
-// TODO: "ADA"
-// TODO: "SUI" ?+ "ENA"
-const version = "2.1.4";
+// TODO: "ADA", "RARE"
+// TODO: "SUI" ?+ "ENA" ?+ "AAVE"
+const version = "2.3.1";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
-const configSymbols = ["PEPE", "HYPE", "USUAL"];
+const configSymbols = ["PEPE", "HYPE", "USUAL", "AVAX"];
 const dateRange = 30;
-const nPositionsMin = 2.5;
-const nPositionsMax = 3.4;
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.0.1.json");
+const nPositionsMin = 3.5;
+const nPositionsMax = 4.4;
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.0.json");
 
 (async () => {
     const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
@@ -20,8 +20,8 @@ const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.0.
     config.setDateRange(dateRange);
 
     if (config.configFile.optimize) {
-        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0.25, 0.75];
-        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0.25, 0.75];
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0.75, 1];
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0.75, 1];
     }
 
     config.save();
