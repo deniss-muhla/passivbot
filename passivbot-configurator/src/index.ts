@@ -5,13 +5,14 @@ import { writeJSON } from "fs-extra";
 
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "2.3.1";
+const version = "2.3.3";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 const configSymbols = ["PEPE", "HYPE", "USUAL", "AVAX"];
+// const optimizationSymbols = ["PEPE", "HYPE", "USUAL", "AVAX"];
 const dateRange = 30;
 const nPositionsMin = 3.5;
 const nPositionsMax = 4.4;
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.0.json");
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.1.json");
 
 (async () => {
     const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);

@@ -1,5 +1,5 @@
 {
-    "version": "2.3.3",
+    "version": "2.3.1",
     "symbols": [
         "PEPE",
         "HYPE",
@@ -11,5 +11,5 @@
         3.5,
         4.4
     ],
-    "templateConfigFilePath": "/usr/src/passivbot/configs/templates/bybit-1.1.1.json"
+    "templateConfigFilePath": "/usr/src/passivbot/configs/templates/bybit-1.1.0.json"
 }
