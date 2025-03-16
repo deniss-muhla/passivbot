@@ -5,14 +5,14 @@ import { writeJSON } from "fs-extra";
 
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "2.3.3";
+const version = "2.4.4";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
-const configSymbols = ["PEPE", "HYPE", "USUAL", "AVAX"];
-// const optimizationSymbols = ["PEPE", "HYPE", "USUAL", "AVAX"];
+//const optimizationPrimarySymbols: string[] = ["BTC"];
+const configSymbols: string[] = ["PEPE", "HYPE", "AVAX", "USUAL"];
 const dateRange = 30;
 const nPositionsMin = 3.5;
 const nPositionsMax = 4.4;
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.1.json");
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.2.json");
 
 (async () => {
     const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
@@ -28,6 +28,9 @@ const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.
     config.save();
     await config.optimize();
     config.applyOptimizedConfig();
+
+    // Save config
+    config.setSymbols(configSymbols);
     config.save();
     await config.backtest();
 
@@ -39,6 +42,8 @@ const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.
         symbolConfig.save();
         await symbolConfig.optimize();
         symbolConfig.applyOptimizedConfig();
+
+        // Save symbol config
         symbolConfig.save();
         await symbolConfig.backtest();
         config.linkSymbolConfig(symbol);
@@ -49,6 +54,7 @@ const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.
         path.resolve(configPath, "meta.json"),
         {
             version,
+            //optimizationPrimarySymbols,
             symbols: configSymbols,
             dateRange,
             nPositions: [nPositionsMin, nPositionsMax],
