@@ -226,6 +226,7 @@ doc/_build/
 
 # PyBuilder
 target/
+.compile.lock
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -302,6 +303,7 @@ pip-selfcheck.json
 
 ### VisualStudioCode ###
 .vscode/*
+!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 *.code-workspace
@@ -344,6 +346,9 @@ backtests/
 config/
 historical_data/
 results*
+cache*
+optimize_results*
+
 
 # Config files
 api-keys.json
@@ -353,3 +358,7 @@ live_configs/*
 configs/live/multigrid.json
 # Reports
 reports/*
+
+passivbot-configurator/node_modules
+configs/**/backtest
+configs/**/optimization
