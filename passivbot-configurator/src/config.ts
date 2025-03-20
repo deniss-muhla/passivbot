@@ -28,6 +28,11 @@ export class Config {
         return new Config(configName, configPath, templateConfigFile);
     }
 
+    static load(configName: string, configPath: string): Config {
+        const configFile = loadConfig(path.join(configPath, `${configName}.json`));
+        return new Config(configName, configPath, configFile);
+    }
+
     public load(): void {
         this.configFile = loadConfig(this.configFilePath);
     }
