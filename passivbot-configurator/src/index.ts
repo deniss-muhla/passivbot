@@ -5,11 +5,11 @@ import { writeJSON } from "fs-extra";
 
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "2.4.5";
+const version = "2.4.7";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
-const configSymbols: string[] = ["PEPE", "HYPE", "AVAX", "POPCAT"];
-const dateRange = 30;
+const configSymbols: string[] = ["PEPE", "HYPE", "AVAX", "ARKM", "POPCAT"];
+const dateRange = 7 * 2;
 const nPositionsMin = 3.5;
 const nPositionsMax = 4.4;
 const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.3.json");

@@ -1,12 +1,15 @@
 {
-    "version": "3.1.0",
+    "version": "2.4.4",
     "symbols": [
-        "PEPE"
+        "PEPE",
+        "HYPE",
+        "AVAX",
+        "USUAL"
     ],
-    "dateRange": 60,
+    "dateRange": 30,
     "nPositions": [
-        0.5,
-        1.4
+        3.5,
+        4.4
     ],
     "templateConfigFilePath": "/usr/src/passivbot/configs/templates/bybit-1.1.2.json"
 }
