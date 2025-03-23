@@ -3,26 +3,28 @@ import { PATHS } from "./utils";
 import { Config } from "./config";
 import { writeJSON } from "fs-extra";
 
+// SET 1: "HYPE", "AVAX", "ARKM"
+// SET 2: "PEPE", "POPCAT", "MOODENG" +? "USUAL"
+// OTHERS: "USUAL", "FARTCOIN", "ADA", "RARE", "SUI", "ENA", "AAVE", "WIF", "OP", "LINK"
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "2.4.7";
+const version = "2.5.0";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
-const configSymbols: string[] = ["PEPE", "HYPE", "AVAX", "ARKM", "POPCAT"];
-const dateRange = 7 * 2;
-const nPositionsMin = 3.5;
-const nPositionsMax = 4.4;
+const configSymbols: string[] = ["HYPE", "AVAX", "ARKM"];
+const nPositionsMin = 2.5;
+const nPositionsMax = 3.4;
 const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.1.3.json");
 
-const optimize = async () => {
+const optimize = async (dateRange: number) => {
     const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
     config.setSymbols(configSymbols);
     config.setOptimizationBoundsNPositions(nPositionsMin, nPositionsMax);
     config.setDateRange(dateRange);
 
     if (config.configFile.optimize) {
-        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0.75, 1];
-        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0.75, 1];
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0.25, 1];
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0.25, 1];
     }
 
     config.save();
@@ -32,7 +34,7 @@ const optimize = async () => {
     // Save config
     config.setSymbols(configSymbols);
     config.save();
-    await config.backtest();
+    //await config.backtest();
 
     for (const symbol of configSymbols) {
         const symbolConfig = Config.createFromTemplateConfigFile(symbol, configPath, templateConfigFilePath);
@@ -80,5 +82,7 @@ const backtest = async (dateRange: number) => {
     }
 };
 
-optimize();
-//backtest(60);
+(async () => {
+    await optimize(7 * 2);
+    await backtest(7 * 12);
+})();

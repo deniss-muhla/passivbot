@@ -1,11 +1,12 @@
 {
-    "version": "2.4.6",
+    "version": "2.4.8",
     "symbols": [
-        "PEPE",
         "HYPE",
+        "PEPE",
         "AVAX",
-        "USUAL",
-        "POPCAT"
+        "ARKM",
+        "POPCAT",
+        "MOODENG"
     ],
     "dateRange": 14,
     "nPositions": [
