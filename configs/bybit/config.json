@@ -71,11 +71,11 @@
         "approved_coins": ["PEPE", "HYPE", "AVAX", "ARKM", "POPCAT"],
         "auto_gs": true,
         "coin_flags": {
-            "PEPE": "-lm n -sm n -lc PEPE.json",
+            "PEPE": "-lm gs -sm gs -lc PEPE.json",
             "HYPE": "-lm n -sm n -lc HYPE.json",
             "AVAX": "-lm n -sm n -lc AVAX.json",
             "ARKM": "-lm n -sm n -lc ARKM.json",
-            "POPCAT": "-lm n -sm n -lc POPCAT.json",
+            "POPCAT": "-lm gs -sm gs -lc POPCAT.json",
             "USUAL": "-lm m -sm m -lc USUAL.json"
         },
         "empty_means_all_approved": true,
