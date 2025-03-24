@@ -1,0 +1,14 @@
+{
+    "version": "2.6.0",
+    "symbols": [
+        "HYPE",
+        "AVAX",
+        "NEIROETH"
+    ],
+    "dateRange": 21,
+    "nPositions": [
+        2.5,
+        3.4
+    ],
+    "templateConfigFilePath": "/usr/src/passivbot/configs/templates/bybit-1.2.0.json"
+}
