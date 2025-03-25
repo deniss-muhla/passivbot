@@ -1,11 +1,11 @@
 {
-    "version": "2.6.3",
+    "version": "2.6.1",
     "symbols": [
         "HYPE",
         "ARKM",
         "NEIROETH"
     ],
-    "dateRange": 14,
+    "dateRange": 21,
     "nPositions": [
         2.5,
         3.4

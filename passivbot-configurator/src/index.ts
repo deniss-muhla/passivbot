@@ -8,7 +8,7 @@ import { writeJSON } from "fs-extra";
 // OTHERS: "USUAL", "FARTCOIN", "ADA", "RARE", "SUI", "ENA", "AAVE", "WIF", "OP", "LINK"
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "2.6.1";
+const version = "2.6.3";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE", "ARKM", "NEIROETH"]; //POPCAT
@@ -23,8 +23,8 @@ const optimize = async (dateRange: number) => {
     config.setDateRange(dateRange);
 
     if (config.configFile.optimize) {
-        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0.5, 1];
-        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0.5, 1];
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0.25, 1];
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0.25, 1];
     }
 
     config.save();
@@ -34,12 +34,12 @@ const optimize = async (dateRange: number) => {
     // Save config
     config.setSymbols(configSymbols);
     config.save();
-    //await config.backtest();
+    await config.backtest();
 
     for (const symbol of configSymbols) {
         const symbolConfig = Config.createFromTemplateConfigFile(symbol, configPath, templateConfigFilePath);
         symbolConfig.setSymbols([symbol]);
-        symbolConfig.setDateRange(dateRange);
+        symbolConfig.setDateRange(dateRange * 2);
         symbolConfig.setOptimizationGlobalBounds(config.configFile);
         symbolConfig.save();
         await symbolConfig.optimize();
@@ -47,7 +47,7 @@ const optimize = async (dateRange: number) => {
 
         // Save symbol config
         symbolConfig.save();
-        //await symbolConfig.backtest();
+        await symbolConfig.backtest();
         config.linkSymbolConfig(symbol);
         config.save();
     }
@@ -83,6 +83,7 @@ const backtest = async (dateRange: number) => {
 };
 
 (async () => {
-    //await optimize(7 * 3);
-    await backtest(7 * 12);
+    await optimize(7 * 2);
+    await backtest(7 * 4);
+    //await backtest(7 * 12);
 })();
