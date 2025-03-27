@@ -74,7 +74,7 @@
             "HYPE": "-lm n -sm n -lc HYPE.json",
             "ARKM": "-lm n -sm n -lc ARKM.json",
             "NEIROETH": "-lm n -sm n -lc NEIROETH.json",
-            "USUAL": "-lm m -sm m"
+            "USUAL": "-lm gs -sm gs"
         },
         "empty_means_all_approved": true,
         "execution_delay_seconds": 2,
