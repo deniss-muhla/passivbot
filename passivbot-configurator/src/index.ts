@@ -14,7 +14,7 @@ const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 const configSymbols: string[] = ["HYPE", "ARKM", "NEIROETH"]; //POPCAT
 const nPositionsMin = 2.5;
 const nPositionsMax = 3.4;
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.3.0.json");
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-1.3.1.json");
 
 const optimize = async (dateRange: number) => {
     const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
@@ -66,6 +66,42 @@ const optimize = async (dateRange: number) => {
     );
 };
 
+const optimizeSymbols = async (dateRange: number) => {
+    const config = Config.load("config", configPath);
+    config.setSymbols(configSymbols);
+    config.setDateRange(dateRange);
+    config.save();
+
+    for (const symbol of configSymbols) {
+        const symbolConfig = Config.createFromTemplateConfigFile(symbol, configPath, templateConfigFilePath);
+        symbolConfig.setSymbols([symbol]);
+        symbolConfig.setDateRange(dateRange * 2);
+        symbolConfig.setOptimizationGlobalBounds(config.configFile);
+        symbolConfig.save();
+        await symbolConfig.optimize();
+        symbolConfig.applyOptimizedConfig();
+
+        // Save symbol config
+        symbolConfig.save();
+        await symbolConfig.backtest();
+        config.linkSymbolConfig(symbol);
+        config.save();
+    }
+
+    await writeJSON(
+        path.resolve(configPath, "meta.json"),
+        {
+            version,
+            //optimizationPrimarySymbols,
+            symbols: configSymbols,
+            dateRange,
+            nPositions: [nPositionsMin, nPositionsMax],
+            templateConfigFilePath,
+        },
+        { spaces: 4 }
+    );
+};
+
 const backtest = async (dateRange: number) => {
     const config = Config.load("config", configPath);
     config.setDateRange(dateRange);
@@ -83,7 +119,8 @@ const backtest = async (dateRange: number) => {
 };
 
 (async () => {
-    await optimize(7 * 2);
-    await backtest(7 * 4);
+    //await optimize(7 * 2);
+    await optimizeSymbols(7 * 2);
+    await backtest(7 * 6);
     //await backtest(7 * 12);
 })();

@@ -1,0 +1,14 @@
+{
+    "version": "2.6.5",
+    "symbols": [
+        "HYPE",
+        "ARKM",
+        "NEIROETH"
+    ],
+    "dateRange": 14,
+    "nPositions": [
+        2.5,
+        3.4
+    ],
+    "templateConfigFilePath": "/usr/src/passivbot/configs/templates/bybit-1.3.1.json"
+}
