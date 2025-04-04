@@ -359,6 +359,9 @@ configs/live/multigrid.json
 # Reports
 reports/*
 
+*.lock
+cach*
+optimize_results*
 passivbot-configurator/node_modules
 configs/**/backtest
 configs/**/optimization
