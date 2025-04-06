@@ -1,0 +1,13 @@
+{
+    "version": "3.0.0",
+    "symbols": [
+        "HYPE",
+        "NEIROETH"
+    ],
+    "dateRange": 14,
+    "nPositions": [
+        1.5,
+        2.4
+    ],
+    "templateConfigFilePath": "/usr/src/passivbot/configs/templates/bybit-3.0.0.json"
+}

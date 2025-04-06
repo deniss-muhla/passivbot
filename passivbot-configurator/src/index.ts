@@ -8,13 +8,13 @@ import { writeJSON } from "fs-extra";
 // OTHERS: "USUAL", "FARTCOIN", "ADA", "RARE", "SUI", "ENA", "AAVE", "WIF", "OP", "LINK"
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "2.7.2";
+const version = "3.0.0";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
-const configSymbols: string[] = ["HYPE", "ARKM", "NEIROETH"]; //POPCAT
-const nPositionsMin = 2.5;
-const nPositionsMax = 3.4;
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-2.0.0.json");
+const configSymbols: string[] = ["HYPE", "NEIROETH"];
+const nPositionsMin = 1.5;
+const nPositionsMax = 2.4;
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-3.0.0.json");
 
 const optimize = async (dateRange: number) => {
     const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
@@ -121,6 +121,6 @@ const backtest = async (dateRange: number) => {
 (async () => {
     await optimize(7 * 2);
     //await optimizeSymbols(7 * 2);
-    await backtest(7 * 4);
+    await backtest(7 * 6);
     //await backtest(7 * 12);
 })();
