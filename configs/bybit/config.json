@@ -72,8 +72,8 @@
         "auto_gs": true,
         "coin_flags": {
             "HYPE": "-lm n -sm n -lc HYPE.json",
-            "ARKM": "-lm n -sm n -lc ARKM.json",
-            "NEIROETH": "-lm n -sm m -lc NEIROETH.json"
+            "ARKM": "-lm n -sm t -lc ARKM.json",
+            "NEIROETH": "-lm n -sm t -lc NEIROETH.json"
         },
         "empty_means_all_approved": true,
         "execution_delay_seconds": 2,
