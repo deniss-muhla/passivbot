@@ -3,13 +3,13 @@
     "base_dir": "backtests",
     "combine_ohlcvs": true,
     "compress_cache": true,
-    "end_date": "2025-04-03",
+    "end_date": "2025-04-04",
     "exchanges": [
       "bybit"
     ],
     "gap_tolerance_ohlcvs_minutes": 120,
-    "start_date": "2025-02-20",
-    "starting_balance": 10000
+    "start_date": "2025-03-07",
+    "starting_balance": 500
   },
   "bot": {
     "long": {
@@ -79,7 +79,8 @@
     "coin_flags": {
       "HYPE": "-lm n -sm n -lc HYPE.json",
       "ARKM": "-lm n -sm n -lc ARKM.json",
-      "NEIROETH": "-lm n -sm n -lc NEIROETH.json"
+      "NEIROETH": "-lm n -sm n -lc NEIROETH.json",
+      "USUAL": "-lm gs -sm gs"
     },
     "empty_means_all_approved": true,
     "execution_delay_seconds": 2,
