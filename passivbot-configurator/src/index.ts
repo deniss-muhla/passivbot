@@ -8,12 +8,12 @@ import { writeJSON } from "fs-extra";
 // OTHERS: "USUAL", "FARTCOIN", "ADA", "RARE", "SUI", "ENA", "AAVE", "WIF", "OP", "LINK"
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "3.0.0";
+const version = "3.0.1";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
-const configSymbols: string[] = ["HYPE", "NEIROETH"];
-const nPositionsMin = 1.5;
-const nPositionsMax = 2.4;
+const configSymbols: string[] = ["HYPE"];
+const nPositionsMin = 1;
+const nPositionsMax = 1;
 const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-3.0.0.json");
 
 const optimize = async (dateRange: number) => {
@@ -102,6 +102,40 @@ const optimizeSymbols = async (dateRange: number) => {
     );
 };
 
+const optimizeSingle = async (dateRange: number) => {
+    const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
+    config.setSymbols(configSymbols);
+    config.setOptimizationBoundsNPositions(nPositionsMin, nPositionsMax);
+    config.setDateRange(dateRange);
+
+    if (config.configFile.optimize) {
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0.25, 2];
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0.25, 2];
+    }
+
+    config.save();
+    await config.optimize();
+    config.applyOptimizedConfig();
+
+    // Save config
+    config.setSymbols(configSymbols);
+    config.save();
+    await config.backtest();
+
+    await writeJSON(
+        path.resolve(configPath, "meta.json"),
+        {
+            version,
+            //optimizationPrimarySymbols,
+            symbols: configSymbols,
+            dateRange,
+            nPositions: [nPositionsMin, nPositionsMax],
+            templateConfigFilePath,
+        },
+        { spaces: 4 }
+    );
+};
+
 const backtest = async (dateRange: number) => {
     const config = Config.load("config", configPath);
     config.setDateRange(dateRange);
@@ -118,9 +152,19 @@ const backtest = async (dateRange: number) => {
     }
 };
 
+const backtestSingle = async (dateRange: number) => {
+    const config = Config.load("config", configPath);
+    config.setDateRange(dateRange);
+    config.save();
+
+    await config.backtest();
+};
+
 (async () => {
-    await optimize(7 * 2);
+    await optimizeSingle(7 * 4);
+    //await optimize(7 * 2);
     //await optimizeSymbols(7 * 2);
-    await backtest(7 * 6);
+    await backtestSingle(7 * 12);
+    //await backtest(7 * 6);
     //await backtest(7 * 12);
 })();
