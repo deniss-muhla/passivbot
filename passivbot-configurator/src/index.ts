@@ -8,7 +8,7 @@ import { writeJSON } from "fs-extra";
 // OTHERS: "USUAL", "FARTCOIN", "ADA", "RARE", "SUI", "ENA", "AAVE", "WIF", "OP", "LINK"
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "3.0.1";
+const version = "3.0.2";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE"];
