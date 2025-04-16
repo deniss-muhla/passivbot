@@ -23,8 +23,8 @@ const optimize = async (dateRange: number) => {
     config.setDateRange(dateRange);
 
     if (config.configFile.optimize) {
-        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0.25, 2];
-        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0.25, 2];
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [1.5, 2];
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [1.5, 2];
     }
 
     config.save();
@@ -161,7 +161,7 @@ const backtestSingle = async (dateRange: number) => {
 };
 
 (async () => {
-    await optimizeSingle(7 * 4);
+    //await optimizeSingle(7 * 4);
     //await optimize(7 * 2);
     //await optimizeSymbols(7 * 2);
     await backtestSingle(7 * 12);
