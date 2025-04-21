@@ -8,12 +8,13 @@ import { writeJSON } from "fs-extra";
 // OTHERS: "USUAL", "FARTCOIN", "ADA", "RARE", "SUI", "ENA", "AAVE", "WIF", "OP", "LINK"
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "3.0.2";
+const version = "3.1.0";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE"];
 const nPositionsMin = 1;
 const nPositionsMax = 1;
+const totalWalletExposureLimit: [number, number] = [1.5, 2];
 const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-3.0.0.json");
 
 const optimize = async (dateRange: number) => {
@@ -23,8 +24,8 @@ const optimize = async (dateRange: number) => {
     config.setDateRange(dateRange);
 
     if (config.configFile.optimize) {
-        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [1.5, 2];
-        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [1.5, 2];
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = totalWalletExposureLimit;
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = totalWalletExposureLimit;
     }
 
     config.save();
@@ -96,6 +97,7 @@ const optimizeSymbols = async (dateRange: number) => {
             symbols: configSymbols,
             dateRange,
             nPositions: [nPositionsMin, nPositionsMax],
+            totalWalletExposureLimit,
             templateConfigFilePath,
         },
         { spaces: 4 }
@@ -109,8 +111,8 @@ const optimizeSingle = async (dateRange: number) => {
     config.setDateRange(dateRange);
 
     if (config.configFile.optimize) {
-        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0.25, 2];
-        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0.25, 2];
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = totalWalletExposureLimit;
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = totalWalletExposureLimit;
     }
 
     config.save();
@@ -130,6 +132,7 @@ const optimizeSingle = async (dateRange: number) => {
             symbols: configSymbols,
             dateRange,
             nPositions: [nPositionsMin, nPositionsMax],
+            totalWalletExposureLimit,
             templateConfigFilePath,
         },
         { spaces: 4 }
@@ -161,7 +164,7 @@ const backtestSingle = async (dateRange: number) => {
 };
 
 (async () => {
-    //await optimizeSingle(7 * 4);
+    await optimizeSingle(7 * 4);
     //await optimize(7 * 2);
     //await optimizeSymbols(7 * 2);
     await backtestSingle(7 * 12);
