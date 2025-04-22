@@ -8,14 +8,14 @@ import { writeJSON } from "fs-extra";
 // OTHERS: "USUAL", "FARTCOIN", "ADA", "RARE", "SUI", "ENA", "AAVE", "WIF", "OP", "LINK"
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
-const version = "3.2.0";
+const version = "3.2.2";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE"];
 const nPositionsMin = 1;
 const nPositionsMax = 1;
-const totalWalletExposureLimit: [number, number] = [1.5, 2];
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, "templates/bybit-3.2.0.json");
+const totalWalletExposureLimit: [number, number] = [1.25, 2];
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${version}.json`);
 
 const optimize = async (dateRange: number) => {
     const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
@@ -164,7 +164,7 @@ const backtestSingle = async (dateRange: number) => {
 };
 
 (async () => {
-    //await optimizeSingle(7 * 4);
+    await optimizeSingle(7 * 4);
     //await optimize(7 * 2);
     //await optimizeSymbols(7 * 2);
     await backtestSingle(7 * 12);
