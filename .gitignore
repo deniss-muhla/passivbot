@@ -353,3 +353,8 @@ live_configs/*
 configs/live/multigrid.json
 # Reports
 reports/*
+
+# Cache data
+cache*
+optimize_results*
+passivbot-configurator/node_modules*

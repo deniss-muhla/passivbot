@@ -1,4 +1,7 @@
 backtests/
+cache/
 caches/
 historical_data/
 optimize_results/
+optimize_results_analysis/
+passivbot-configurator/node_modules/

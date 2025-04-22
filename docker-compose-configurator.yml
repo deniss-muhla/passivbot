@@ -1,0 +1,9 @@
+services:
+    passivbot-configurator:
+        build: .
+        image: passivbot:latest
+        container_name: passivbot-configurator
+        volumes:
+            - ./:/app/
+        working_dir: /app/passivbot-configurator
+        command: npm run start

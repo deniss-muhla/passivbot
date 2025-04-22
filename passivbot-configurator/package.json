@@ -1,0 +1,18 @@
+{
+    "name": "passivbot-configurator",
+    "version": "1.0.0",
+    "description": "A configurator for Passivbot",
+    "scripts": {
+        "start": "ts-node src/index.ts",
+        "dev": "ts-node-dev src/index.ts"
+    },
+    "dependencies": {
+        "typescript": "^4.5.4",
+        "fs-extra": "^11.3.0"
+    },
+    "devDependencies": {
+        "ts-node": "^10.4.0",
+        "ts-node-dev": "^1.1.8",
+        "@types/fs-extra": "^11.0.4"
+    }
+}
