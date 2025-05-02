@@ -8,6 +8,11 @@ import { writeJSON } from "fs-extra";
 // OTHERS: "USUAL", "FARTCOIN", "ADA", "RARE", "SUI", "ENA", "AAVE", "WIF", "OP", "LINK"
 // TODO: "ADA", "RARE"
 // TODO: "SUI" ?+ "ENA" ?+ "AAVE"
+
+// TODO: entry_trailing_double_down_factor
+// "long_entry_trailing_double_down_factor": [0.1, 3.0],
+// "short_entry_trailing_double_down_factor": [0.1, 3.0],
+
 const version = "HYPE-3.3.0";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
