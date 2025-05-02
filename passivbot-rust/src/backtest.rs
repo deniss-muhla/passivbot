@@ -138,7 +138,8 @@ pub struct Backtest<'a> {
     trading_enabled: TradingEnabled,
     trailing_enabled: TrailingEnabled,
     equities: Equities,
-    delist_timestamps: HashMap<usize, usize>,
+    last_valid_timestamps: HashMap<usize, usize>,
+    first_valid_timestamps: HashMap<usize, usize>,
     did_fill_long: HashSet<usize>,
     did_fill_short: HashSet<usize>,
     n_eligible_long: usize,
@@ -192,11 +193,10 @@ impl<'a> Backtest<'a> {
         bot_params_pair_cloned.long.n_positions = n_coins.min(bot_params_pair.long.n_positions);
         bot_params_pair_cloned.short.n_positions = n_coins.min(bot_params_pair.short.n_positions);
         let n_eligible_long = bot_params_pair_cloned.long.n_positions.max(
-            (n_coins as f64 * (1.0 - bot_params_pair.long.filter_relative_volume_clip_pct)).round()
-                as usize,
+            (n_coins as f64 * (1.0 - bot_params_pair.long.filter_volume_drop_pct)).round() as usize,
         );
         let n_eligible_short = bot_params_pair_cloned.short.n_positions.max(
-            (n_coins as f64 * (1.0 - bot_params_pair.short.filter_relative_volume_clip_pct)).round()
+            (n_coins as f64 * (1.0 - bot_params_pair.short.filter_volume_drop_pct)).round()
                 as usize,
         );
         Backtest {
@@ -230,7 +230,8 @@ impl<'a> Backtest<'a> {
                     || bot_params_pair.short.entry_trailing_grid_ratio != 0.0,
             },
             equities: equities,
-            delist_timestamps: HashMap::new(),
+            last_valid_timestamps: HashMap::new(),
+            first_valid_timestamps: HashMap::new(),
             did_fill_long: HashSet::new(),
             did_fill_short: HashSet::new(),
             n_eligible_long,
@@ -258,18 +259,20 @@ impl<'a> Backtest<'a> {
             _ => panic!("Invalid pside"),
         };
 
-        // Early return if all coins are already eligible
         if self.n_coins <= n_positions {
             return (0..self.n_coins).collect();
         }
+        let volume_filtered = self.filter_by_relative_volume(k, pside);
+        self.rank_by_noisiness(k, &volume_filtered, pside)
+    }
 
-        let n_eligible = match pside {
-            LONG => self.n_eligible_long,
-            SHORT => self.n_eligible_short,
+    fn filter_by_relative_volume(&mut self, k: usize, pside: usize) -> Vec<usize> {
+        let bot_params = match pside {
+            LONG => &self.bot_params_pair.long,
+            SHORT => &self.bot_params_pair.short,
             _ => panic!("Invalid pside"),
         };
-
-        let window = bot_params.filter_rolling_window;
+        let window = bot_params.filter_volume_rolling_window;
         let start_k = k.saturating_sub(window);
 
         let (rolling_volume_sum, prev_k) = match pside {
@@ -284,12 +287,9 @@ impl<'a> Backtest<'a> {
             _ => panic!("Invalid pside"),
         };
 
-        // Use the pre-allocated buffer for volume indices
         let volume_indices = self.volume_indices_buffer.as_mut().unwrap();
 
-        // Update rolling volume sums
         if k > window && k - *prev_k < window {
-            // Rolling calculation
             let safe_start = (*prev_k).saturating_sub(window);
             for idx in 0..self.n_coins {
                 rolling_volume_sum[idx] -=
@@ -298,7 +298,6 @@ impl<'a> Backtest<'a> {
                 volume_indices[idx] = (rolling_volume_sum[idx], idx);
             }
         } else {
-            // Full calculation
             for idx in 0..self.n_coins {
                 rolling_volume_sum[idx] = self.hlcvs.slice(s![start_k..k, idx, VOLUME]).sum();
                 volume_indices[idx] = (rolling_volume_sum[idx], idx);
@@ -306,33 +305,47 @@ impl<'a> Backtest<'a> {
         }
         *prev_k = k;
 
-        // Sort by volume in descending order
         volume_indices.sort_unstable_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(Ordering::Equal));
 
-        // Calculate noisiness for top n_eligible coins
-        let actual_n_eligible = n_eligible.min(self.n_coins);
-        let mut noisinesses = Vec::with_capacity(actual_n_eligible);
+        let n_eligible = match pside {
+            LONG => self.n_eligible_long,
+            SHORT => self.n_eligible_short,
+            _ => panic!("Invalid pside"),
+        };
+        volume_indices
+            .iter()
+            .take(n_eligible.min(self.n_coins))
+            .map(|&(_, idx)| idx)
+            .collect()
+    }
 
-        for &(_, idx) in volume_indices.iter().take(actual_n_eligible) {
-            let noisiness: f64 = self
-                .hlcvs
-                .slice(s![start_k..k, idx, ..])
-                .axis_iter(Axis(0))
-                .map(|row| (row[HIGH] - row[LOW]) / row[CLOSE])
-                .sum();
-            noisinesses.push((noisiness, idx));
-        }
+    fn rank_by_noisiness(&self, k: usize, candidates: &[usize], pside: usize) -> Vec<usize> {
+        let bot_params = match pside {
+            LONG => &self.bot_params_pair.long,
+            SHORT => &self.bot_params_pair.short,
+            _ => panic!("Invalid pside"),
+        };
+        let start_k = k.saturating_sub(bot_params.filter_noisiness_rolling_window);
 
-        // Sort by noisiness in descending order
+        let mut noisinesses: Vec<(f64, usize)> = candidates
+            .iter()
+            .map(|&idx| {
+                let noisiness: f64 = self
+                    .hlcvs
+                    .slice(s![start_k..k, idx, ..])
+                    .axis_iter(Axis(0))
+                    .map(|row| (row[HIGH] - row[LOW]) / row[CLOSE])
+                    .sum();
+                (noisiness, idx)
+            })
+            .collect();
+
         noisinesses.sort_unstable_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(Ordering::Equal));
-
-        // Return indices sorted by noisiness
         noisinesses.into_iter().map(|(_, idx)| idx).collect()
     }
-    pub fn run(&mut self) -> (Vec<Fill>, Equities) {
-        let check_points: Vec<usize> = (0..7).map(|i| i * 60 * 24).collect();
-        let n_timesteps = self.hlcvs.shape()[0];
 
+    pub fn run(&mut self) -> (Vec<Fill>, Equities) {
+        let n_timesteps = self.hlcvs.shape()[0];
         for idx in 0..self.n_coins {
             self.trailing_prices
                 .long
@@ -340,30 +353,18 @@ impl<'a> Backtest<'a> {
             self.trailing_prices
                 .short
                 .insert(idx, TrailingPriceBundle::default());
+        }
 
-            // check if the coin was delisted at any point
-            if n_timesteps > *check_points.last().unwrap() {
-                let last_hlc_close = self.hlcvs[[n_timesteps - 1, idx, CLOSE]];
-                if check_points.iter().all(|&point| {
-                    self.hlcvs[[n_timesteps - 1 - point, idx, HIGH]] == last_hlc_close
-                        && self.hlcvs[[n_timesteps - 1 - point, idx, LOW]] == last_hlc_close
-                        && self.hlcvs[[n_timesteps - 1 - point, idx, CLOSE]] == last_hlc_close
-                }) {
-                    // was delisted. Find timestamp of delisting
-                    let mut i = n_timesteps - check_points.last().unwrap();
-                    while i > 0
-                        && self.hlcvs[[i, idx, HIGH]] == last_hlc_close
-                        && self.hlcvs[[i, idx, LOW]] == last_hlc_close
-                        && self.hlcvs[[i, idx, CLOSE]] == last_hlc_close
-                    {
-                        i -= 1;
-                    }
-                    if i > 1 {
-                        self.delist_timestamps.insert(idx, i);
-                    }
-                }
+        // --- find first & last valid candle for every coin (binary-search) ---
+        let (first_valid, last_valid) = find_valid_timestamp_bounds(&self.hlcvs);
+        for idx in 0..self.n_coins {
+            self.first_valid_timestamps.insert(idx, first_valid[idx]);
+            if n_timesteps - last_valid[idx] > 1400 {
+                // add only if delisted more than one day before last timestamp
+                self.last_valid_timestamps.insert(idx, last_valid[idx]); // keep same name for callers
             }
         }
+
         for k in 1..(n_timesteps - 1) {
             self.check_for_fills(k);
             self.update_emas(k);
@@ -688,6 +689,7 @@ impl<'a> Backtest<'a> {
             println!("coin: {}", self.backtest_params.coins[idx]);
             println!("new_psize: {}", new_psize);
             println!("close order: {:?}", close_fill);
+            println!("bot config: {:?}", self.bot_params_pair.long);
             new_psize = 0.0;
             adjusted_close_qty = -self.positions.long[&idx].size;
         }
@@ -983,7 +985,7 @@ impl<'a> Backtest<'a> {
             .unwrap_or(Position::default());
 
         // check if coin is delisted; if so, close pos as unstuck close
-        if let Some(&delist_timestamp) = self.delist_timestamps.get(&idx) {
+        if let Some(&delist_timestamp) = self.last_valid_timestamps.get(&idx) {
             if k >= delist_timestamp && self.positions.long.contains_key(&idx) {
                 self.open_orders.long.get_mut(&idx).unwrap().closes = [Order {
                     qty: -self.positions.long[&idx].size,
@@ -1055,7 +1057,7 @@ impl<'a> Backtest<'a> {
             .unwrap_or(Position::default());
 
         // check if coin is delisted; if so, close pos as unstuck close
-        if let Some(&delist_timestamp) = self.delist_timestamps.get(&idx) {
+        if let Some(&delist_timestamp) = self.last_valid_timestamps.get(&idx) {
             if k >= delist_timestamp && self.positions.short.contains_key(&idx) {
                 self.open_orders.short.get_mut(&idx).unwrap().closes = [Order {
                     qty: self.positions.short[&idx].size.abs(),
@@ -1539,6 +1541,56 @@ impl<'a> Backtest<'a> {
     }
 }
 
+/// Binary-search the **first** and **last** valid candle index for every coin.
+/// A candle is *invalid* when `high == low == close` **and** `volume <= 0.0`
+/// (volume is -1.0 in new data, 0.0 in older back/front-filled data).
+fn find_valid_timestamp_bounds(hlcvs: &ArrayView3<f64>) -> (Vec<usize>, Vec<usize>) {
+    let n_ts = hlcvs.shape()[0];
+    let n_coins = hlcvs.shape()[1];
+    let mut firsts = vec![0; n_coins];
+    let mut lasts = vec![0; n_coins];
+
+    for idx in 0..n_coins {
+        // helper closure to keep the predicate in one place
+        let is_invalid = |k: usize| {
+            let row = hlcvs.slice(s![k, idx, ..]);
+            row[HIGH] == row[LOW] && row[HIGH] == row[CLOSE] && row[VOLUME] <= 0.0
+        };
+
+        /* ---------- first valid ---------- */
+        let (mut lo, mut hi) = (0usize, n_ts - 1);
+        while lo < hi {
+            let mid = (lo + hi) / 2;
+            if is_invalid(mid) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+
+        // market never became valid
+        if is_invalid(lo) {
+            firsts[idx] = n_ts; // or usize::MAX – choose a sentinel
+            lasts[idx] = n_ts;
+            continue; // next coin
+        }
+        firsts[idx] = lo;
+
+        /* ---------- last valid ---------- */
+        let (mut lo2, mut hi2) = (lo, n_ts - 1); // <-- start at first_valid
+        while lo2 < hi2 {
+            let mid = (lo2 + hi2 + 1) / 2; // bias to upper half
+            if is_invalid(mid) {
+                hi2 = mid - 1;
+            } else {
+                lo2 = mid;
+            }
+        }
+        lasts[idx] = lo2;
+    }
+    (firsts, lasts)
+}
+
 fn calc_ema_alphas(bot_params_pair: &BotParamsPair) -> EmaAlphas {
     let mut ema_spans_long = [
         bot_params_pair.long.ema_span_0,
@@ -1612,7 +1664,7 @@ fn analyze_backtest_basic(fills: &[Fill], equities: &Vec<f64>) -> Analysis {
         .collect();
 
     // Calculate ADG and standard metrics
-    let adg = smoothed_terminal_geometric_adg(&daily_eqs);
+    let (gain, adg) = smoothed_terminal_geometric_gain_and_adg(&daily_eqs);
     let mdg = {
         let mut sorted_pct_change = daily_eqs_pct_change.clone();
         sorted_pct_change.sort_by(|a, b| {
@@ -1792,8 +1844,6 @@ fn analyze_backtest_basic(fills: &[Fill], equities: &Vec<f64>) -> Analysis {
     } else {
         0.0
     };
-
-    let gain = fills[fills.len() - 1].balance_usd_total / fills[0].balance_usd_total;
 
     // Calculate profit factor
     let (total_profit, total_loss) = fills.iter().fold((0.0, 0.0), |(profit, loss), fill| {
@@ -2110,12 +2160,12 @@ pub fn calc_exponential_fit_error(equity: &[f64]) -> f64 {
 }
 
 /// Applies EMA smoothing (span=3) to daily equity values and computes geometric mean growth rate
-pub fn smoothed_terminal_geometric_adg(daily_eqs: &[f64]) -> f64 {
+pub fn smoothed_terminal_geometric_gain_and_adg(daily_eqs: &[f64]) -> (f64, f64) {
     if daily_eqs.len() < 2 {
-        return 0.0;
+        return (0.0, 0.0);
     }
     if daily_eqs[0] <= 0.0 {
-        return f64::INFINITY;
+        return (f64::INFINITY, f64::INFINITY);
     }
     let alpha = 2.0 / (3.0 + 1.0); // span = 3 → alpha = 0.5
     let mut smoothed = Vec::with_capacity(daily_eqs.len());
@@ -2129,8 +2179,9 @@ pub fn smoothed_terminal_geometric_adg(daily_eqs: &[f64]) -> f64 {
     let start = smoothed[0];
     let end = *smoothed.last().unwrap();
     if end <= 0.0 {
-        return -1.0;
+        return (-1.0, -1.0);
     }
     let n_days = daily_eqs.len() as f64;
-    (end / start).powf(1.0 / n_days) - 1.0
+    let gain = end / start;
+    (gain, gain.powf(1.0 / n_days) - 1.0)
 }
