@@ -141,7 +141,7 @@
 
             "long_filter_noisiness_rolling_window": [10, 360],
             "long_filter_volume_drop_pct": [0.5, 1],
-            "long_filter_volume_rolling_window": [360, 2880],
+            "long_filter_volume_rolling_window": [10, 2880],
 
             "long_n_positions": [0, 0],
             "long_total_wallet_exposure_limit": [0, 0],
@@ -192,19 +192,14 @@
         "enable_overrides": [],
         "iters": 300000,
         "limits": {
-            "penalize_if_lower_than_gain": 2.0,
             "penalize_if_greater_than_drawdown_worst": 0.05,
             "penalize_if_greater_than_drawdown_worst_mean_1pct": 0.05,
             "penalize_if_greater_than_equity_balance_diff_neg_max": 0.1,
             "penalize_if_greater_than_equity_balance_diff_neg_mean": 0.01,
             "penalize_if_greater_than_position_held_hours_median": 1.5,
-            "penalize_if_greater_than_position_unchanged_hours_max": 48.0,
-            "penalize_if_lower_than_positions_held_per_day": 15.0,
-
-            "penalize_if_greater_than_loss_profit_ratio": 0.05,
-            "penalize_if_greater_than_equity_jerkiness": 1.0,
-            "penalize_if_greater_than_equity_choppiness": 1.0,
-            "penalize_if_greater_than_expected_shortfall_1pct": 0.2
+            "penalize_if_greater_than_position_unchanged_hours_max": 72,
+            "penalize_if_lower_than_gain": 24,
+            "penalize_if_lower_than_positions_held_per_day": 10
         },
         "mutation_probability": 0.2,
         "n_cpus": 10,

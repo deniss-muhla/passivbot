@@ -1,5 +1,5 @@
 import * as path from "path";
-import { PATHS } from "./utils";
+import { formatDuration, PATHS } from "./utils";
 import { Config } from "./config";
 import { writeJSON } from "fs-extra";
 
@@ -13,7 +13,7 @@ import { writeJSON } from "fs-extra";
 // "long_entry_trailing_double_down_factor": [0.1, 3.0],
 // "short_entry_trailing_double_down_factor": [0.1, 3.0],
 
-const version = "HYPE-3.3.0";
+const version = "HYPE-3.4.1";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE"];
@@ -21,6 +21,7 @@ const nPositionsMin = 1;
 const nPositionsMax = 1;
 const totalWalletExposureLimit: [number, number] = [1.25, 2.25];
 const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${version}.json`);
+const startTime = new Date();
 
 const optimize = async (dateRange: number) => {
     const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
@@ -111,42 +112,6 @@ const optimizeSymbols = async (dateRange: number) => {
     }
 };
 
-const optimizeSingle = async (dateRange: number) => {
-    const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
-    config.setSymbols(configSymbols);
-    config.setOptimizationBoundsNPositions(nPositionsMin, nPositionsMax);
-    config.setDateRange(dateRange);
-
-    if (config.configFile.optimize) {
-        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = totalWalletExposureLimit;
-        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = totalWalletExposureLimit;
-    }
-
-    config.save();
-
-    await writeJSON(
-        path.resolve(configPath, "meta.json"),
-        {
-            version,
-            //optimizationPrimarySymbols,
-            symbols: configSymbols,
-            dateRange,
-            nPositions: [nPositionsMin, nPositionsMax],
-            totalWalletExposureLimit,
-            templateConfigFilePath,
-        },
-        { spaces: 4 }
-    );
-
-    await config.optimize();
-    config.applyOptimizedConfig();
-
-    // Save config
-    config.setSymbols(configSymbols);
-    config.save();
-    await config.backtest();
-};
-
 const backtest = async (dateRange: number) => {
     const config = Config.load("config", configPath);
     config.setDateRange(dateRange);
@@ -163,6 +128,42 @@ const backtest = async (dateRange: number) => {
     }
 };
 
+const optimizeSingle = async (dateRange: number) => {
+    const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
+    config.setSymbols(configSymbols);
+    config.setOptimizationBoundsNPositions(nPositionsMin, nPositionsMax);
+    config.setDateRange(dateRange);
+
+    if (config.configFile.optimize) {
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = totalWalletExposureLimit;
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = totalWalletExposureLimit;
+    }
+
+    config.save();
+
+    await config.optimize();
+    await config.analyzeOptimizationResults();
+    config.applyOptimizedConfig();
+    config.setSymbols(configSymbols);
+    config.save();
+
+    await writeJSON(
+        path.resolve(configPath, "meta.json"),
+        {
+            duration: formatDuration(new Date().getTime() - startTime.getTime()),
+            version,
+            //optimizationPrimarySymbols,
+            symbols: configSymbols,
+            dateRange,
+            nPositions: [nPositionsMin, nPositionsMax],
+            totalWalletExposureLimit,
+            templateConfigFilePath,
+        },
+        { spaces: 4 }
+    );
+    // await config.backtest();
+};
+
 const backtestSingle = async (dateRange: number) => {
     const config = Config.load("config", configPath);
     config.setDateRange(dateRange);
@@ -172,10 +173,14 @@ const backtestSingle = async (dateRange: number) => {
 };
 
 (async () => {
-    await optimizeSingle(7 * 4);
+    await optimizeSingle(7 * 4 * 12);
+
+    await backtestSingle(7 * 4 * 12);
+    await backtestSingle(7 * 4 * 3);
+    await backtestSingle(7 * 2);
+
     //await optimize(7 * 2);
     //await optimizeSymbols(7 * 2);
-    await backtestSingle(7 * 4 * 12);
     //await backtest(7 * 6);
     //await backtest(7 * 12);
 })();

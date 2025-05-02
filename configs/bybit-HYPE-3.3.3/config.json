@@ -14,60 +14,64 @@
   },
   "bot": {
     "long": {
-      "close_grid_markup_range": 0.011236,
-      "close_grid_min_markup": 0.0049467,
-      "close_grid_qty_pct": 0.73075,
+      "close_grid_markup_range": 0.01493,
+      "close_grid_min_markup": 0.001714,
+      "close_grid_qty_pct": 0.8949,
       "close_trailing_grid_ratio": 0,
       "close_trailing_qty_pct": 0,
       "close_trailing_retracement_pct": 0,
       "close_trailing_threshold_pct": 0,
-      "ema_span_0": 490.48,
-      "ema_span_1": 1184.5,
+      "ema_span_0": 1162,
+      "ema_span_1": 874.5,
       "enforce_exposure_limit": true,
-      "entry_grid_double_down_factor": 3,
-      "entry_grid_spacing_pct": 0.014759,
-      "entry_grid_spacing_weight": 4.7657,
-      "entry_initial_ema_dist": -0.091031,
-      "entry_initial_qty_pct": 0.019954,
-      "entry_trailing_grid_ratio": -0.72281,
-      "entry_trailing_retracement_pct": 0.010287,
-      "entry_trailing_threshold_pct": 0.14123,
-      "filter_relative_volume_clip_pct": 0.54227,
-      "filter_rolling_window": 203.86,
+      "entry_grid_double_down_factor": 2.903,
+      "entry_grid_spacing_pct": 0.0129,
+      "entry_grid_spacing_weight": 5.098,
+      "entry_initial_ema_dist": -0.0347,
+      "entry_initial_qty_pct": 0.01038,
+      "entry_trailing_double_down_factor": 2,
+      "entry_trailing_grid_ratio": -0.6925,
+      "entry_trailing_retracement_pct": 0.0197,
+      "entry_trailing_threshold_pct": 0.1143,
+      "filter_noisiness_rolling_window": 340.2,
+      "filter_volume_drop_pct": 0.5201,
+      "filter_volume_rolling_window": 2100,
       "n_positions": 1,
-      "total_wallet_exposure_limit": 1.5049,
-      "unstuck_close_pct": 0.075121,
-      "unstuck_ema_dist": 0.0016942,
-      "unstuck_loss_allowance_pct": 0.045175,
-      "unstuck_threshold": 0.79961
+      "total_wallet_exposure_limit": 1.55,
+      "unstuck_close_pct": 0.04684,
+      "unstuck_ema_dist": 0.002817,
+      "unstuck_loss_allowance_pct": 0.02892,
+      "unstuck_threshold": 0.8474
     },
     "short": {
-      "close_grid_markup_range": 0.011467,
-      "close_grid_min_markup": 0.0020296,
-      "close_grid_qty_pct": 0.87766,
+      "close_grid_markup_range": 0.01066,
+      "close_grid_min_markup": 0.0019,
+      "close_grid_qty_pct": 0.6875,
       "close_trailing_grid_ratio": 0,
       "close_trailing_qty_pct": 0,
       "close_trailing_retracement_pct": 0,
       "close_trailing_threshold_pct": 0,
-      "ema_span_0": 828.87,
-      "ema_span_1": 1083.2,
+      "ema_span_0": 955.2,
+      "ema_span_1": 1075,
       "enforce_exposure_limit": true,
-      "entry_grid_double_down_factor": 2.4286,
-      "entry_grid_spacing_pct": 0.011594,
-      "entry_grid_spacing_weight": 5.2553,
-      "entry_initial_ema_dist": -0.078977,
-      "entry_initial_qty_pct": 0.011696,
-      "entry_trailing_grid_ratio": -0.73633,
-      "entry_trailing_retracement_pct": 0.017099,
-      "entry_trailing_threshold_pct": 0.10806,
-      "filter_relative_volume_clip_pct": 0.21526,
-      "filter_rolling_window": 283.7,
+      "entry_grid_double_down_factor": 2.303,
+      "entry_grid_spacing_pct": 0.01948,
+      "entry_grid_spacing_weight": 3.27,
+      "entry_initial_ema_dist": -0.09714,
+      "entry_initial_qty_pct": 0.01587,
+      "entry_trailing_double_down_factor": 2.687,
+      "entry_trailing_grid_ratio": -0.6929,
+      "entry_trailing_retracement_pct": 0.0133,
+      "entry_trailing_threshold_pct": 0.1136,
+      "filter_noisiness_rolling_window": 94.6,
+      "filter_volume_drop_pct": 0.9291,
+      "filter_volume_rolling_window": 1931,
       "n_positions": 1,
-      "total_wallet_exposure_limit": 1.9997,
-      "unstuck_close_pct": 0.03786,
-      "unstuck_ema_dist": -0.045983,
-      "unstuck_loss_allowance_pct": 0.018109,
-      "unstuck_threshold": 0.94969
+      "total_wallet_exposure_limit": 2.072,
+      "unstuck_close_pct": 0.0845,
+      "unstuck_ema_dist": -0.007625,
+      "unstuck_loss_allowance_pct": 0.04841,
+      "unstuck_threshold": 0.758
     }
   },
   "live": {
@@ -156,6 +160,10 @@
         0.01,
         0.025
       ],
+      "long_entry_trailing_double_down_factor": [
+        2,
+        3
+      ],
       "long_entry_trailing_grid_ratio": [
         -0.89,
         -0.67
@@ -168,21 +176,25 @@
         0.1,
         0.2
       ],
-      "long_filter_relative_volume_clip_pct": [
-        0,
-        1
-      ],
-      "long_filter_rolling_window": [
+      "long_filter_noisiness_rolling_window": [
         10,
         360
+      ],
+      "long_filter_volume_drop_pct": [
+        0.5,
+        1
+      ],
+      "long_filter_volume_rolling_window": [
+        10,
+        2880
       ],
       "long_n_positions": [
         1,
         1
       ],
       "long_total_wallet_exposure_limit": [
-        1.5,
-        2
+        1.25,
+        2.25
       ],
       "long_unstuck_close_pct": [
         0.001,
@@ -256,6 +268,10 @@
         0.01,
         0.025
       ],
+      "short_entry_trailing_double_down_factor": [
+        2,
+        3
+      ],
       "short_entry_trailing_grid_ratio": [
         -0.89,
         -0.67
@@ -268,21 +284,25 @@
         0.1,
         0.2
       ],
-      "short_filter_relative_volume_clip_pct": [
-        0,
-        1
-      ],
-      "short_filter_rolling_window": [
+      "short_filter_noisiness_rolling_window": [
         10,
         360
+      ],
+      "short_filter_volume_drop_pct": [
+        0.5,
+        1
+      ],
+      "short_filter_volume_rolling_window": [
+        360,
+        2880
       ],
       "short_n_positions": [
         1,
         1
       ],
       "short_total_wallet_exposure_limit": [
-        1.5,
-        2
+        1.25,
+        2.25
       ],
       "short_unstuck_close_pct": [
         0.001,
@@ -306,19 +326,19 @@
     "enable_overrides": [],
     "iters": 300000,
     "limits": {
-      "penalize_if_lower_than_gain": 2,
       "penalize_if_greater_than_drawdown_worst": 0.05,
       "penalize_if_greater_than_drawdown_worst_mean_1pct": 0.05,
       "penalize_if_greater_than_equity_balance_diff_neg_max": 0.1,
       "penalize_if_greater_than_equity_balance_diff_neg_mean": 0.01,
       "penalize_if_greater_than_position_held_hours_median": 1.5,
       "penalize_if_greater_than_position_unchanged_hours_max": 48,
+      "penalize_if_lower_than_gain": 15,
       "penalize_if_lower_than_positions_held_per_day": 15
     },
     "mutation_probability": 0.2,
     "n_cpus": 10,
-    "population_size": 500,
-    "round_to_n_significant_digits": 5,
+    "population_size": 1000,
+    "round_to_n_significant_digits": 4,
     "scoring": [
       "mdg_w",
       "sterling_ratio"

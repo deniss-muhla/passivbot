@@ -89,18 +89,26 @@ export function moveDir(srcDirPath: string, destDirPath: string): void {
     }
 }
 
-export function optimizeConfig(configFilePath: string): Promise<ConfigFileOptimizationResult> {
+export function optimizeConfig(configFilePath: string, logFilePath?: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const pythonProcess = spawn("python", ["src/optimize.py", configFilePath], {
             cwd: PATHS.ROOT,
         });
 
         pythonProcess.stdout.on("data", (data) => {
-            console.log(data.toString());
+            if (logFilePath) {
+                fs.appendFileSync(logFilePath, data.toString());
+            } else {
+                console.log(data.toString());
+            }
         });
 
         pythonProcess.stderr.on("data", (data) => {
-            console.error(data.toString());
+            if (logFilePath) {
+                fs.appendFileSync(logFilePath, data.toString());
+            } else {
+                console.error(data.toString());
+            }
         });
 
         pythonProcess.on("close", (code) => {
@@ -108,18 +116,7 @@ export function optimizeConfig(configFilePath: string): Promise<ConfigFileOptimi
                 return reject(new Error(`Optimization process exited with code: ${code}`));
             }
             try {
-                const optimizationResultsFilePath = getLastFilePath(PATHS.OPTIMIZE_RESULTS, (f) => f.endsWith(".txt"));
-                const optimizationAnalysisFilePath = getLastFilePath(PATHS.OPTIMIZE_RESULTS_ANALYSIS, (f) =>
-                    f.endsWith(".txt")
-                );
-                const optimizedConfigFilePath = getLastFilePath(PATHS.OPTIMIZE_RESULTS_ANALYSIS, (f) =>
-                    f.endsWith(".json")
-                );
-                resolve({
-                    optimizationResultsFilePath,
-                    optimizationAnalysisFilePath,
-                    optimizedConfigFilePath,
-                });
+                resolve(getLastDirPath(PATHS.OPTIMIZE_RESULTS, (f) => !!f));
             } catch (err) {
                 reject(err);
             }
@@ -127,18 +124,64 @@ export function optimizeConfig(configFilePath: string): Promise<ConfigFileOptimi
     });
 }
 
-export function backtestConfig(configFilePath: string): Promise<string> {
+export function analyzeOptimizationResults(
+    optimizationResultsDirPath: string,
+    logFilePath?: string
+): Promise<string | undefined> {
+    return new Promise((resolve, reject) => {
+        const pythonProcess = spawn("python", ["src/pareto_store.py", optimizationResultsDirPath], {
+            cwd: PATHS.ROOT,
+        });
+
+        pythonProcess.stdout.on("data", (data) => {
+            if (logFilePath) {
+                fs.appendFileSync(logFilePath, data.toString());
+            } else {
+                console.log(data.toString());
+            }
+        });
+
+        pythonProcess.stderr.on("data", (data) => {
+            if (logFilePath) {
+                fs.appendFileSync(logFilePath, data.toString());
+            } else {
+                console.error(data.toString());
+            }
+        });
+
+        pythonProcess.on("close", (code) => {
+            if (code !== 0) {
+                return reject(new Error(`Optimization process exited with code: ${code}`));
+            }
+            try {
+                resolve(extractIdealConfigPath(logFilePath));
+            } catch (err) {
+                reject(err);
+            }
+        });
+    });
+}
+
+export function backtestConfig(configFilePath: string, logFilePath?: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const pythonProcess = spawn("python", ["src/backtest.py", configFilePath, "--disable_plotting"], {
             cwd: PATHS.ROOT,
         });
 
         pythonProcess.stdout.on("data", (data) => {
-            console.log(data.toString());
+            if (logFilePath) {
+                fs.appendFileSync(logFilePath, data.toString());
+            } else {
+                console.log(data.toString());
+            }
         });
 
         pythonProcess.stderr.on("data", (data) => {
-            console.error(data.toString());
+            if (logFilePath) {
+                fs.appendFileSync(logFilePath, data.toString());
+            } else {
+                console.error(data.toString());
+            }
         });
 
         pythonProcess.on("close", (code) => {
@@ -187,4 +230,31 @@ export function applyOptimizationGlobalBounds(srcConfigFile: ConfigFile, destCon
             });
         });
     }
+}
+
+export function extractIdealConfigPath(analysisLogFilePath: string | undefined): string | undefined {
+    if (!analysisLogFilePath || !fs.existsSync(analysisLogFilePath)) {
+        console.error("Analysis log file not found: ", analysisLogFilePath);
+        return undefined;
+    }
+    const logContent = fs.readFileSync(analysisLogFilePath, "utf-8");
+    const lines = logContent.split("\n");
+    for (const line of lines) {
+        if (line.startsWith("Closest to ideal:")) {
+            return line.split(": ", 2)[1].split(" | ", 1)[0];
+        }
+    }
+    return undefined;
+}
+
+export function formatDuration(milliseconds: number): string {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600)
+        .toString()
+        .padStart(2, "0");
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+        .toString()
+        .padStart(2, "0");
+    const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+    return `${hours}:${minutes}:${seconds}`;
 }

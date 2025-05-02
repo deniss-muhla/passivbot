@@ -1,6 +1,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import {
+    analyzeOptimizationResults,
     applyOptimizationGlobalBounds,
     backtestConfig,
     fixJSON,
@@ -10,7 +11,7 @@ import {
     saveConfig,
 } from "./utils";
 import { ConfigFile } from "./types";
-import { moveSync } from "fs-extra";
+import { copySync, ensureFileSync, moveSync, rmSync } from "fs-extra";
 
 export class Config {
     public get configFilePath(): string {
@@ -76,28 +77,42 @@ export class Config {
     }
 
     public async optimize(): Promise<void> {
-        const { optimizationResultsFilePath, optimizationAnalysisFilePath, optimizedConfigFilePath } =
-            await optimizeConfig(this.configFilePath);
-        // Move result files to the config folder
-
-        moveSync(
-            optimizationResultsFilePath,
-            path.join(this.configPath, "optimization", this.configName, "results.txt"),
-            { overwrite: true }
+        ensureFileSync(path.join(this.configPath, "optimization", this.configName, "optimization_log.txt"));
+        const optimizationResultsDirPath = await optimizeConfig(
+            this.configFilePath,
+            path.join(this.configPath, "optimization", this.configName, "optimization_log.txt")
         );
-        moveSync(
-            optimizationAnalysisFilePath,
-            path.join(this.configPath, "optimization", this.configName, "results_analysis.txt"),
-            { overwrite: true }
-        );
-        moveSync(optimizedConfigFilePath, path.join(this.configPath, "optimization", this.configName, "config.json"), {
+        copySync(optimizationResultsDirPath, path.join(this.configPath, "optimization", this.configName), {
             overwrite: true,
         });
+        fs.rmdirSync(optimizationResultsDirPath, { recursive: true });
+    }
+
+    public async analyzeOptimizationResults(): Promise<void> {
+        ensureFileSync(path.join(this.configPath, "optimization", this.configName, "analyzation_log.txt"));
+        const idealConfigFilePath = await analyzeOptimizationResults(
+            path.join(this.configPath, "optimization", this.configName, "pareto"),
+            path.join(this.configPath, "optimization", this.configName, "analyzation_log.txt")
+        );
+        if (idealConfigFilePath) {
+            copySync(
+                idealConfigFilePath,
+                path.join(this.configPath, "optimization", this.configName, "ideal_config.json"),
+                {
+                    overwrite: true,
+                }
+            );
+        }
     }
 
     public applyOptimizedConfig(): void {
         // Load optimized config
-        const optimizedConfigFilePath = path.join(this.configPath, "optimization", this.configName, "config.json");
+        const optimizedConfigFilePath = path.join(
+            this.configPath,
+            "optimization",
+            this.configName,
+            "ideal_config.json"
+        );
         const optimizedConfig = loadConfig(optimizedConfigFilePath);
         // Apply optimized config
         if (optimizedConfig.bot) {
@@ -113,7 +128,15 @@ export class Config {
     }
 
     public async backtest(): Promise<void> {
-        const backtestDirPath = await backtestConfig(this.configFilePath);
-        moveSync(backtestDirPath, path.join(this.configPath, "backtest", this.configName), { overwrite: true });
+        ensureFileSync(path.join(this.configPath, "backtest", this.configName, "backtest_log.txt"));
+        const backtestDirPath = await backtestConfig(
+            this.configFilePath,
+            path.join(this.configPath, "backtest", this.configName, "backtest_log.txt")
+        );
+        const currentDate = new Date().toISOString().replace("T", "_").split(".")[0].replace(/:/g, "-");
+        copySync(backtestDirPath, path.join(this.configPath, "backtest", this.configName, currentDate), {
+            overwrite: true,
+        });
+        fs.rmdirSync(backtestDirPath, { recursive: true });
     }
 }
