@@ -172,7 +172,7 @@ const backtestSingle = async (dateRange: number) => {
 };
 
 (async () => {
-    //await optimizeSingle(7 * 4);
+    await optimizeSingle(7 * 4);
     //await optimize(7 * 2);
     //await optimizeSymbols(7 * 2);
     await backtestSingle(7 * 4 * 12);
