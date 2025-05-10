@@ -11,6 +11,7 @@ export const PATHS = ((rootPath: string) =>
         OPTIMIZE_RESULTS: path.resolve(rootPath, "optimize_results"),
         OPTIMIZE_RESULTS_ANALYSIS: path.resolve(rootPath, "optimize_results_analysis"),
         BACKTEST: path.resolve(rootPath, "backtests/combined"),
+        //BACKTEST: path.resolve(rootPath, "backtests/bybit"),
     } as const))(path.resolve(__dirname, "../../"));
 
 export function getLastFilePath(basePath: string, filter: (f: string) => boolean): string {

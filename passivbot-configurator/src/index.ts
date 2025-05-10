@@ -6,14 +6,10 @@ import { writeJSON } from "fs-extra";
 // SET 1: "HYPE", "AVAX", "ARKM"
 // SET 2: "PEPE", "POPCAT", "MOODENG" +? "USUAL"
 // OTHERS: "USUAL", "FARTCOIN", "ADA", "RARE", "SUI", "ENA", "AAVE", "WIF", "OP", "LINK"
-// TODO: "ADA", "RARE"
-// TODO: "SUI" ?+ "ENA" ?+ "AAVE"
+// "ADA", "RARE"
+// "SUI" ?+ "ENA" ?+ "AAVE"
 
-// TODO: entry_trailing_double_down_factor
-// "long_entry_trailing_double_down_factor": [0.1, 3.0],
-// "short_entry_trailing_double_down_factor": [0.1, 3.0],
-
-const version = "HYPE-3.5.0";
+const version = "HYPE-3.5.0-best";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE"];
@@ -173,7 +169,7 @@ const backtestSingle = async (dateRange: number) => {
 };
 
 (async () => {
-    await optimizeSingle(7 * 4 * 4);
+    //await optimizeSingle(7 * 4 * 4);
 
     await backtestSingle(7 * 2);
     await backtestSingle(7 * 4 * 4);

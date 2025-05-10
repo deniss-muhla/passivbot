@@ -127,21 +127,21 @@
             "long_ema_span_0": [200, 1440],
             "long_ema_span_1": [200, 1440],
 
-            "long_entry_grid_double_down_factor": [2, 3],
+            "long_entry_grid_double_down_factor": [2, 4],
             "long_entry_grid_spacing_pct": [0.005, 0.015],
             "long_entry_grid_spacing_weight": [3, 6],
 
             "long_entry_initial_ema_dist": [-0.1, 0.003],
             "long_entry_initial_qty_pct": [0.01, 0.025],
 
-            "long_entry_trailing_double_down_factor": [2, 3],
+            "long_entry_trailing_double_down_factor": [2, 4],
             "long_entry_trailing_grid_ratio": [-0.89, -0.67],
             "long_entry_trailing_retracement_pct": [0.01, 0.03],
             "long_entry_trailing_threshold_pct": [0.05, 0.2],
 
             "long_filter_noisiness_rolling_window": [10, 360],
             "long_filter_volume_drop_pct": [0.5, 1],
-            "long_filter_volume_rolling_window": [10, 2880],
+            "long_filter_volume_rolling_window": [360, 2880],
 
             "long_n_positions": [0, 0],
             "long_total_wallet_exposure_limit": [0, 0],
@@ -163,14 +163,14 @@
             "short_ema_span_0": [200, 1440],
             "short_ema_span_1": [200, 1440],
 
-            "short_entry_grid_double_down_factor": [2, 3],
+            "short_entry_grid_double_down_factor": [2, 4],
             "short_entry_grid_spacing_pct": [0.005, 0.025],
             "short_entry_grid_spacing_weight": [3, 6],
 
             "short_entry_initial_ema_dist": [-0.1, 0.003],
             "short_entry_initial_qty_pct": [0.01, 0.025],
 
-            "short_entry_trailing_double_down_factor": [2, 3],
+            "short_entry_trailing_double_down_factor": [2, 4],
             "short_entry_trailing_grid_ratio": [-0.89, -0.67],
             "short_entry_trailing_retracement_pct": [0.01, 0.03],
             "short_entry_trailing_threshold_pct": [0.05, 0.2],
@@ -188,7 +188,7 @@
             "short_unstuck_threshold": [0.75, 0.95]
         },
         "compress_results_file": true,
-        "crossover_probability": 0.7,
+        "crossover_probability": 0.64,
         "enable_overrides": [],
         "iters": 300000,
         "limits": {
@@ -208,10 +208,11 @@
             "penalize_if_lower_than_positions_held_per_day": 16,
             "penalize_if_greater_than_position_unchanged_hours_max": 60
         },
-        "mutation_probability": 0.2,
+        "mutation_probability": 0.34,
         "n_cpus": 10,
         "population_size": 1000,
         "round_to_n_significant_digits": 4,
-        "scoring": ["mdg_w", "adg_w", "sterling_ratio"]
+        "scoring": ["mdg_w", "adg_w", "sterling_ratio"],
+        "write_all_results": false
     }
 }
