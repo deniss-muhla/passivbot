@@ -13,7 +13,7 @@ import { writeJSON } from "fs-extra";
 // "long_entry_trailing_double_down_factor": [0.1, 3.0],
 // "short_entry_trailing_double_down_factor": [0.1, 3.0],
 
-const version = "HYPE-3.4.1";
+const version = "HYPE-3.5.0";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE"];
@@ -173,11 +173,11 @@ const backtestSingle = async (dateRange: number) => {
 };
 
 (async () => {
-    await optimizeSingle(7 * 4 * 12);
+    await optimizeSingle(7 * 4 * 4);
 
-    await backtestSingle(7 * 4 * 12);
-    await backtestSingle(7 * 4 * 3);
     await backtestSingle(7 * 2);
+    await backtestSingle(7 * 4 * 4);
+    await backtestSingle(7 * 4 * 12);
 
     //await optimize(7 * 2);
     //await optimizeSymbols(7 * 2);
