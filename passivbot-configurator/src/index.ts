@@ -9,7 +9,7 @@ import { writeJSON } from "fs-extra";
 // "ADA", "RARE"
 // "SUI" ?+ "ENA" ?+ "AAVE"
 
-const version = "HYPE-3.5.0-best";
+const version = "HYPE-3.5.1";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE"];
