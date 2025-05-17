@@ -9,13 +9,13 @@ import { writeJSON } from "fs-extra";
 // "ADA", "RARE"
 // "SUI" ?+ "ENA" ?+ "AAVE"
 
-const version = "HYPE-3.5.1";
+const version = "HYPE-3.5.2";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE"];
 const nPositionsMin = 1;
 const nPositionsMax = 1;
-const totalWalletExposureLimit: [number, number] = [1.25, 2.25];
+const totalWalletExposureLimit: [number, number] = [1.75, 2.0];
 const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${version}.json`);
 const startTime = new Date();
 
