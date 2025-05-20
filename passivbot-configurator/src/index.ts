@@ -9,8 +9,8 @@ import { writeJSON } from "fs-extra";
 // "ADA", "RARE"
 // "SUI" ?+ "ENA" ?+ "AAVE"
 
-const version = "HYPE-3.6.3";
-const startingVersion = "HYPE-3.5.2-r";
+const version = "HYPE-3.6.4";
+const startingVersion = "HYPE-3.6.3-r";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 const startingConfigPath = startingVersion ? path.resolve(PATHS.CONFIGS, `bybit-${startingVersion}`) : undefined;
 //const optimizationPrimarySymbols: string[] = ["BTC"];
