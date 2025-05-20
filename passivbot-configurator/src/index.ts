@@ -1,5 +1,5 @@
 import * as path from "path";
-import { formatDuration, PATHS } from "./utils";
+import { formatDuration, PATHS, sleep } from "./utils";
 import { Config } from "./config";
 import { writeJSON } from "fs-extra";
 
@@ -9,7 +9,7 @@ import { writeJSON } from "fs-extra";
 // "ADA", "RARE"
 // "SUI" ?+ "ENA" ?+ "AAVE"
 
-const version = "HYPE-3.6.4";
+const version = "HYPE-3.6.6";
 const startingVersion = "HYPE-3.6.3-r";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 const startingConfigPath = startingVersion ? path.resolve(PATHS.CONFIGS, `bybit-${startingVersion}`) : undefined;
@@ -191,13 +191,21 @@ const backtestSingle = async (dateRange: number) => {
 };
 
 (async () => {
-    await optimizeSingle(7 * 4 * 1);
-    await backtestSingle(7 * 4 * 1);
+    //await optimizeSingle(7 * 4 * 1);
+    //await optimizeSingle(7 * 4 * 12);
 
-    // await optimizeSingle(7 * 4 * 4);
-    // await backtestSingle(7 * 4 * 4);
+    // await sleep(2000);
+    // await backtestSingle(7 * 4 * 1);
 
+    await optimizeSingle(7 * 4 * 4);
+
+    await sleep(2000);
+    await backtestSingle(7 * 4 * 4);
+
+    await sleep(2000);
     await backtestSingle(7 * 2);
+
+    await sleep(2000);
     await backtestSingle(7 * 4 * 12);
 
     //await optimize(7 * 2);

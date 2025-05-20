@@ -192,7 +192,7 @@
         "enable_overrides": [],
         "iters": 300000,
         "limits": {
-            "penalize_if_lower_than_gain": 800,
+            "penalize_if_lower_than_gain": 1000,
             "penalize_if_lower_than_adg": 0.04,
             "penalize_if_lower_than_mdg": 0.04,
             "penalize_if_greater_than_drawdown_worst": 0.2,

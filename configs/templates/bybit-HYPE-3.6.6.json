@@ -192,12 +192,12 @@
         "enable_overrides": [],
         "iters": 300000,
         "limits": {
-            "penalize_if_lower_than_gain": 800,
+            "penalize_if_lower_than_gain": 150,
             "penalize_if_lower_than_adg": 0.04,
             "penalize_if_lower_than_mdg": 0.04,
-            "penalize_if_greater_than_drawdown_worst": 0.2,
-            "penalize_if_greater_than_expected_shortfall_1pct": 0.1,
-            "penalize_if_greater_than_loss_profit_ratio": 0.1
+            "penalize_if_greater_than_drawdown_worst": 0.085,
+            "penalize_if_greater_than_expected_shortfall_1pct": 0.08,
+            "penalize_if_greater_than_loss_profit_ratio": 0.006
         },
         "mutation_probability": 0.36,
         "n_cpus": 10,
