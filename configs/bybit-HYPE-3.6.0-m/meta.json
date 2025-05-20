@@ -1,0 +1,17 @@
+{
+    "duration": "01:22:49",
+    "version": "HYPE-3.6.0",
+    "symbols": [
+        "HYPE"
+    ],
+    "dateRange": 112,
+    "nPositions": [
+        1,
+        1
+    ],
+    "totalWalletExposureLimit": [
+        1.75,
+        2
+    ],
+    "templateConfigFilePath": "/app/configs/templates/bybit-HYPE-3.6.0.json"
+}

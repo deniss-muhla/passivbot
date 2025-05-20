@@ -90,11 +90,21 @@ export function moveDir(srcDirPath: string, destDirPath: string): void {
     }
 }
 
-export function optimizeConfig(configFilePath: string, logFilePath?: string): Promise<string> {
+export function optimizeConfig(
+    configFilePath: string,
+    startingConfigPath: string | undefined,
+    logFilePath?: string
+): Promise<string> {
     return new Promise((resolve, reject) => {
-        const pythonProcess = spawn("python", ["src/optimize.py", configFilePath], {
-            cwd: PATHS.ROOT,
-        });
+        const pythonProcess = spawn(
+            "python",
+            startingConfigPath
+                ? ["src/optimize.py", configFilePath, "--start", startingConfigPath]
+                : ["src/optimize.py", configFilePath],
+            {
+                cwd: PATHS.ROOT,
+            }
+        );
 
         pythonProcess.stdout.on("data", (data) => {
             if (logFilePath) {

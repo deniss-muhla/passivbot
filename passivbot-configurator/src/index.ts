@@ -9,8 +9,10 @@ import { writeJSON } from "fs-extra";
 // "ADA", "RARE"
 // "SUI" ?+ "ENA" ?+ "AAVE"
 
-const version = "HYPE-3.5.2";
+const version = "HYPE-3.6.3";
+const startingVersion = "HYPE-3.5.2-r";
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
+const startingConfigPath = startingVersion ? path.resolve(PATHS.CONFIGS, `bybit-${startingVersion}`) : undefined;
 //const optimizationPrimarySymbols: string[] = ["BTC"];
 const configSymbols: string[] = ["HYPE"];
 const nPositionsMin = 1;
@@ -20,7 +22,12 @@ const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${ve
 const startTime = new Date();
 
 const optimize = async (dateRange: number) => {
-    const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
+    const config = Config.createFromTemplateConfigFile(
+        "config",
+        configPath,
+        templateConfigFilePath,
+        startingConfigPath
+    );
     config.setSymbols(configSymbols);
     config.setOptimizationBoundsNPositions(nPositionsMin, nPositionsMax);
     config.setDateRange(dateRange);
@@ -54,7 +61,12 @@ const optimize = async (dateRange: number) => {
     await config.backtest();
 
     for (const symbol of configSymbols) {
-        const symbolConfig = Config.createFromTemplateConfigFile(symbol, configPath, templateConfigFilePath);
+        const symbolConfig = Config.createFromTemplateConfigFile(
+            symbol,
+            configPath,
+            templateConfigFilePath,
+            startingConfigPath
+        );
         symbolConfig.setSymbols([symbol]);
         symbolConfig.setDateRange(dateRange * 2);
         symbolConfig.setOptimizationGlobalBounds(config.configFile);
@@ -91,7 +103,12 @@ const optimizeSymbols = async (dateRange: number) => {
     );
 
     for (const symbol of configSymbols) {
-        const symbolConfig = Config.createFromTemplateConfigFile(symbol, configPath, templateConfigFilePath);
+        const symbolConfig = Config.createFromTemplateConfigFile(
+            symbol,
+            configPath,
+            templateConfigFilePath,
+            startingConfigPath
+        );
         symbolConfig.setSymbols([symbol]);
         symbolConfig.setDateRange(dateRange * 2);
         symbolConfig.setOptimizationGlobalBounds(config.configFile);
@@ -125,7 +142,12 @@ const backtest = async (dateRange: number) => {
 };
 
 const optimizeSingle = async (dateRange: number) => {
-    const config = Config.createFromTemplateConfigFile("config", configPath, templateConfigFilePath);
+    const config = Config.createFromTemplateConfigFile(
+        "config",
+        configPath,
+        templateConfigFilePath,
+        startingConfigPath
+    );
     config.setSymbols(configSymbols);
     config.setOptimizationBoundsNPositions(nPositionsMin, nPositionsMax);
     config.setDateRange(dateRange);
@@ -139,7 +161,7 @@ const optimizeSingle = async (dateRange: number) => {
 
     await config.optimize();
     await config.analyzeOptimizationResults();
-    config.applyOptimizedConfig();
+    config.copyOptimizedConfig();
     config.setSymbols(configSymbols);
     config.save();
 
@@ -169,10 +191,13 @@ const backtestSingle = async (dateRange: number) => {
 };
 
 (async () => {
-    //await optimizeSingle(7 * 4 * 4);
+    await optimizeSingle(7 * 4 * 1);
+    await backtestSingle(7 * 4 * 1);
+
+    // await optimizeSingle(7 * 4 * 4);
+    // await backtestSingle(7 * 4 * 4);
 
     await backtestSingle(7 * 2);
-    await backtestSingle(7 * 4 * 4);
     await backtestSingle(7 * 4 * 12);
 
     //await optimize(7 * 2);

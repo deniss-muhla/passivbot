@@ -18,15 +18,21 @@ export class Config {
         return path.join(this.configPath, `${this.configName}.json`);
     }
 
-    private constructor(public configName: string, public configPath: string, public configFile: ConfigFile) {}
+    private constructor(
+        public configName: string,
+        public configPath: string,
+        public configFile: ConfigFile,
+        public startingConfigPath?: string
+    ) {}
 
     static createFromTemplateConfigFile(
         configName: string,
         configPath: string,
-        templateConfigFilePath: string
+        templateConfigFilePath: string,
+        startingConfigPath: string | undefined
     ): Config {
         const templateConfigFile = loadConfig(templateConfigFilePath);
-        return new Config(configName, configPath, templateConfigFile);
+        return new Config(configName, configPath, templateConfigFile, startingConfigPath);
     }
 
     static load(configName: string, configPath: string): Config {
@@ -80,6 +86,7 @@ export class Config {
         ensureFileSync(path.join(this.configPath, "optimization", this.configName, "optimization_log.txt"));
         const optimizationResultsDirPath = await optimizeConfig(
             this.configFilePath,
+            this.startingConfigPath,
             path.join(this.configPath, "optimization", this.configName, "optimization_log.txt")
         );
         copySync(optimizationResultsDirPath, path.join(this.configPath, "optimization", this.configName), {
@@ -103,6 +110,19 @@ export class Config {
                 }
             );
         }
+    }
+
+    public copyOptimizedConfig(): void {
+        const optimizedConfigFilePath = path.join(
+            this.configPath,
+            "optimization",
+            this.configName,
+            "ideal_config.json"
+        );
+        copySync(optimizedConfigFilePath, this.configFilePath, {
+            overwrite: true,
+        });
+        this.load();
     }
 
     public applyOptimizedConfig(): void {
