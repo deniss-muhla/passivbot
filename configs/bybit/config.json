@@ -38,7 +38,7 @@
             "filter_volume_drop_pct": 0.9883,
             "filter_volume_rolling_window": 1195,
             "n_positions": 1,
-            "total_wallet_exposure_limit": 0.5,
+            "total_wallet_exposure_limit": 1.886,
             "unstuck_close_pct": 0.0698,
             "unstuck_ema_dist": -0.01005,
             "unstuck_loss_allowance_pct": 0.01763,
@@ -78,7 +78,9 @@
     "live": {
         "approved_coins": ["HYPE"],
         "auto_gs": true,
-        "coin_flags": {},
+        "coin_flags": {
+            "HYPE": "-sm n -lm m"
+        },
         "empty_means_all_approved": true,
         "execution_delay_seconds": 2,
         "filter_by_min_effective_cost": true,
