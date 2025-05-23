@@ -82,6 +82,20 @@ export class Config {
         }
     }
 
+    public disableOptimizationLong(): void {
+        if (this.configFile.optimize) {
+            this.configFile.optimize.bounds.long_n_positions = [0, 0];
+            this.configFile.optimize.bounds.long_total_wallet_exposure_limit = [0, 0];
+        }
+    }
+
+    public disableOptimizationShort(): void {
+        if (this.configFile.optimize) {
+            this.configFile.optimize.bounds.short_n_positions = [0, 0];
+            this.configFile.optimize.bounds.short_total_wallet_exposure_limit = [0, 0];
+        }
+    }
+
     public async optimize(): Promise<void> {
         ensureFileSync(path.join(this.configPath, "optimization", this.configName, "optimization_log.txt"));
         const optimizationResultsDirPath = await optimizeConfig(

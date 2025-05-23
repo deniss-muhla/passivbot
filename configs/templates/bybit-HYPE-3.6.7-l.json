@@ -132,7 +132,7 @@
             "long_entry_grid_spacing_weight": [3, 6],
 
             "long_entry_initial_ema_dist": [-0.1, 0.003],
-            "long_entry_initial_qty_pct": [0.01, 0.025],
+            "long_entry_initial_qty_pct": [0.001, 0.025],
 
             "long_entry_trailing_double_down_factor": [2, 4],
             "long_entry_trailing_grid_ratio": [-0.89, -0.67],
@@ -168,7 +168,7 @@
             "short_entry_grid_spacing_weight": [3, 6],
 
             "short_entry_initial_ema_dist": [-0.1, 0.003],
-            "short_entry_initial_qty_pct": [0.01, 0.025],
+            "short_entry_initial_qty_pct": [0.001, 0.025],
 
             "short_entry_trailing_double_down_factor": [2, 4],
             "short_entry_trailing_grid_ratio": [-0.89, -0.67],
@@ -192,7 +192,7 @@
         "enable_overrides": [],
         "iters": 300000,
         "limits": {
-            "penalize_if_lower_than_gain": 150,
+            "penalize_if_lower_than_gain": 100,
             "penalize_if_lower_than_adg": 0.04,
             "penalize_if_lower_than_mdg": 0.04,
             "penalize_if_lower_than_sharpe_ratio": 0.4,
@@ -202,10 +202,10 @@
             "penalize_if_greater_than_drawdown_worst": 0.085,
             "penalize_if_greater_than_expected_shortfall_1pct": 0.08,
             "penalize_if_greater_than_loss_profit_ratio": 0.006,
-            "penalize_if_lower_than_positions_held_per_day": 15,
+            "penalize_if_lower_than_positions_held_per_day": 10,
             "penalize_if_greater_than_position_unchanged_hours_max": 72
         },
-        "mutation_probability": 0.36,
+        "mutation_probability": 0.34,
         "n_cpus": 10,
         "population_size": 1000,
         "round_to_n_significant_digits": 4,
