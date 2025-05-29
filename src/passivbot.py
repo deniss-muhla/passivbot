@@ -15,12 +15,15 @@ import numpy as np
 import inspect
 import passivbot_rust as pbr
 import logging
+import json # Added for WebSocket stats comparison
+import copy # Added for deepcopying config in get_websocket_config
 from prettytable import PrettyTable
 from uuid import uuid4
 from copy import deepcopy
 from collections import defaultdict
 from sortedcontainers import SortedDict
 
+from .websocket_server import WebSocketServer # Added for WebSocket integration
 from procedures import (
     load_broker_code,
     load_user_info,
@@ -102,6 +105,8 @@ def or_default(f, *args, default=None, **kwargs):
 class Passivbot:
     def __init__(self, config: dict):
         self.config = config
+        self.last_stats_snapshot = None # For WebSocket stats comparison
+        self.websocket_server = WebSocketServer(bot_instance=self) # Instantiate WebSocketServer
         self.user = config["live"]["user"]
         self.user_info = load_user_info(self.user)
         self.exchange = self.user_info["exchange"]
@@ -174,6 +179,24 @@ class Passivbot:
         await self.prepare_for_execution()
 
         logging.info(f"starting execution loop...")
+
+        # Start WebSocket Server
+        websocket_port = self.config['live'].get('websocket_port', 8765)
+        websocket_password = self.config['live'].get('websocket_password', "hardcoded_password") # TODO: Replace with actual config access
+        websocket_public_key_part = self.config['live'].get('websocket_public_key_part', "hardcoded_key_part") # TODO: Replace with actual config access
+
+        try:
+            logging.info(f"Attempting to start WebSocket server on port {websocket_port}...")
+            await self.websocket_server.start(
+                host='0.0.0.0',
+                port=websocket_port,
+                password_for_key=websocket_password,
+                expected_public_key_part=websocket_public_key_part
+            )
+            logging.info(f"WebSocket server started successfully.")
+        except Exception as e:
+            logging.error(f"Failed to start WebSocket server: {e}", exc_info=True)
+        
         if not self.debug_mode:
             await self.run_execution_loop()
 
@@ -351,6 +374,20 @@ class Passivbot:
                 if self.mimic_backtest_1m_delay:
                     seconds_until_whole_minute = (ONE_MIN_MS - utc_ms() % ONE_MIN_MS) / 1000
                     sleep_duration = min(sleep_duration, seconds_until_whole_minute)
+                
+                # Broadcast statistics if WebSocket server is running and has clients
+                if hasattr(self, 'websocket_server') and self.websocket_server and self.websocket_server.connected_clients:
+                    try:
+                        current_stats = self.ws_get_current_stats()
+                        # Basic check for changes (can be made more sophisticated)
+                        # Using json.dumps for a simple comparison of potentially complex dicts
+                        if json.dumps(current_stats, sort_keys=True) != json.dumps(self.last_stats_snapshot, sort_keys=True):
+                            self.last_stats_snapshot = current_stats
+                            await self.websocket_server.broadcast({"type": "statistics", "data": current_stats})
+                    except Exception as e:
+                        # self.logger is not available, using standard logging
+                        logging.error(f"Error broadcasting WebSocket statistics: {e}", exc_info=True)
+
                 await asyncio.sleep(max(0.0, sleep_duration))
             except Exception as e:
                 logging.error(f"error with {get_function_name()} {e}")
@@ -2324,9 +2361,75 @@ class Passivbot:
         return False
 
     async def close(self):
-        logging.info(f"Stopped data maintainers: {self.stop_data_maintainers()}")
-        await self.cca.close()
-        await self.ccp.close()
+        logging.info(f"Stopping data maintainers...")
+        self.stop_data_maintainers() # Call it without checking return for this context
+        
+        if hasattr(self, 'websocket_server') and self.websocket_server:
+            logging.info("Stopping WebSocket server...")
+            try:
+                await self.websocket_server.stop()
+                logging.info("WebSocket server stopped successfully.")
+            except Exception as e:
+                logging.error(f"Error stopping WebSocket server during bot close: {e}", exc_info=True)
+
+        if hasattr(self, 'cca') and self.cca:
+            logging.info("Closing CCXT API connections (cca)...")
+            try:
+                await self.cca.close()
+                logging.info("CCA closed.")
+            except Exception as e:
+                logging.error(f"Error closing cca: {e}", exc_info=True)
+        
+        if hasattr(self, 'ccp') and self.ccp:
+            logging.info("Closing CCXT API connections (ccp)...")
+            try:
+                await self.ccp.close()
+                logging.info("CCP closed.")
+            except Exception as e:
+                logging.error(f"Error closing ccp: {e}", exc_info=True)
+
+    async def ws_get_config(self):
+        # Return a deep copy to prevent modification of the live config by the WebSocket server
+        return copy.deepcopy(self.config)
+
+    def ws_get_current_stats(self):
+        # Gather various statistics. Be careful about methods that might be async or blocking.
+        # For simplicity, directly access attributes that are regularly updated.
+        stats = {
+            "timestamp": int(utc_ms()), # Ensure utc_ms is available
+            "balance": getattr(self, 'balance', 0.0),
+            "upnl": self.calc_upnl_sum() if hasattr(self, 'calc_upnl_sum') else 0.0,
+            "open_orders_count": len(self.fetched_open_orders) if hasattr(self, 'fetched_open_orders') else 0,
+            "active_symbols_count": len(self.active_symbols) if hasattr(self, 'active_symbols') else 0,
+            "positions": [], # Populate below
+            # Add more stats as needed
+        }
+
+        if hasattr(self, 'fetched_positions'):
+            for pos in self.fetched_positions:
+                stats["positions"].append({
+                    "symbol": pos.get("symbol"),
+                    "side": pos.get("position_side"),
+                    "size": pos.get("size"),
+                    "entry_price": pos.get("price")
+                })
+        elif hasattr(self, 'positions'): # Fallback if fetched_positions is not the primary source
+            for symbol, pos_data in self.positions.items():
+                if pos_data['long']['size'] != 0:
+                    stats["positions"].append({
+                        "symbol": symbol,
+                        "side": "long",
+                        "size": pos_data['long']['size'],
+                        "entry_price": pos_data['long']['price']
+                    })
+                if pos_data['short']['size'] != 0:
+                    stats["positions"].append({
+                        "symbol": symbol,
+                        "side": "short",
+                        "size": pos_data['short']['size'],
+                        "entry_price": pos_data['short']['price']
+                    })
+        return stats
 
     def add_to_coins_lists(self, content, k_coins):
         symbols = None
@@ -2456,15 +2559,44 @@ async def main():
         try:
             await bot.start_bot()
         except Exception as e:
-            logging.error(f"passivbot error {e}")
-            traceback.print_exc()
+            logging.error(f"Passivbot encountered an error in start_bot: {e}", exc_info=True)
+            # Ensure bot.stop_signal_received is True so run_execution_loop terminates if it was running
+            if 'bot' in locals() and hasattr(bot, 'stop_signal_received'):
+                bot.stop_signal_received = True
         finally:
-            try:
-                bot.stop_data_maintainers()
-                await bot.ccp.close()
-                await bot.cca.close()
-            except:
-                pass
+            if 'bot' in locals():
+                logging.info("Shutting down bot from main()...")
+                # Using bot.close() which should now handle websocket server, ccp, cca, and data_maintainers
+                try:
+                    await bot.close()
+                    logging.info("Bot close sequence completed from main().")
+                except Exception as e:
+                    logging.error(f"Error during bot.close() in main() finally block: {e}", exc_info=True)
+                    # Fallback for critical components if bot.close() failed or is incomplete
+                    logging.info("Attempting fallback shutdown for critical components...")
+                    if hasattr(bot, 'stop_data_maintainers'):
+                        bot.stop_data_maintainers(verbose=False)
+                    if hasattr(bot, 'websocket_server') and bot.websocket_server and bot.websocket_server.server:
+                        try:
+                            await bot.websocket_server.stop()
+                            logging.info("WebSocket server stopped (fallback).")
+                        except Exception as ws_e:
+                            logging.error(f"Error stopping WebSocket server (fallback): {ws_e}", exc_info=True)
+                    if hasattr(bot, 'ccp') and bot.ccp:
+                        try:
+                            await bot.ccp.close()
+                            logging.info("CCP closed (fallback).")
+                        except Exception as ccp_e:
+                            logging.error(f"Error closing CCP (fallback): {ccp_e}", exc_info=True)
+                    if hasattr(bot, 'cca') and bot.cca:
+                        try:
+                            await bot.cca.close()
+                            logging.info("CCA closed (fallback).")
+                        except Exception as cca_e:
+                            logging.error(f"Error closing CCA (fallback): {cca_e}", exc_info=True)
+            else:
+                logging.info("Bot instance not found in main() finally block for shutdown.")
+
         logging.info(f"restarting bot...")
         print()
         for z in range(cooldown_secs, -1, -1):
@@ -2485,4 +2617,11 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nBot shutdown complete.")
+        logging.info("\nKeyboardInterrupt received. Bot shutdown initiated.")
+        # Note: The main() finally block should handle cleanup.
+        # If there's a bot instance, signal_handler would have set bot.stop_signal_received = True
+        # leading to a graceful shutdown. If shutdown is stuck, this print might be the last thing seen.
+    except Exception as e:
+        logging.error(f"Critical error in main asyncio.run: {e}", exc_info=True)
+    finally:
+        logging.info("Passivbot main process finished.")
