@@ -3,8 +3,13 @@ import pandas as pd
 import os
 import json
 import passivbot_rust as pbr
+from tools.event_loop_policy import set_windows_event_loop_policy
+
+# on Windows this will pick the SelectorEventLoopPolicy
+set_windows_event_loop_policy()
 import asyncio
 import argparse
+
 from procedures import (
     utc_ms,
     make_get_filepath,
@@ -45,15 +50,25 @@ logging.basicConfig(
 
 
 @contextmanager
-def create_shared_memory_file(hlcvs):
-    temp_file = tempfile.NamedTemporaryFile(delete=False)
-    shared_memory_file = temp_file.name
+def create_shared_memory_file(array: np.ndarray):
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+        filepath = f.name
+        array.tofile(f)
+
     try:
-        with open(shared_memory_file, "wb") as f:
-            f.write(hlcvs.tobytes())
-        yield shared_memory_file
+        yield filepath
     finally:
-        os.unlink(shared_memory_file)
+        # Ensure file is closed before deleting
+        try:
+            os.unlink(filepath)
+        except PermissionError:
+            import time
+
+            time.sleep(0.1)  # Wait briefly and try again
+            try:
+                os.unlink(filepath)
+            except Exception as e:
+                print(f"Failed to delete temporary file {filepath}: {e}")
 
 
 plt.rcParams["figure.figsize"] = [29, 18]
@@ -318,7 +333,11 @@ def expand_analysis(analysis_usd, analysis_btc, fills, config):
     if not config["backtest"]["use_btc_collateral"]:
         return analysis_usd
     return {
-        **{f"btc_{k}": v for k, v in analysis_btc.items() if "position" not in k},
+        **{
+            f"btc_{k}": v
+            for k, v in analysis_btc.items()
+            if "position" not in k and "volume_pct_per_day" not in k
+        },
         **analysis_usd,
     }
 
