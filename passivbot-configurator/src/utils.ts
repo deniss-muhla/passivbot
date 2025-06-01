@@ -224,12 +224,13 @@ export function applyOptimizationGlobalBounds(srcConfigFile: ConfigFile, destCon
     if (srcConfigFile.bot && destConfigFile.optimize) {
         ["long", "short"].forEach((side) => {
             [
-                "filter_relative_volume_clip_pct",
-                "filter_rolling_window",
-                "total_wallet_exposure_limit",
-                "unstuck_close_pct",
-                "unstuck_loss_allowance_pct",
                 "n_positions",
+                "total_wallet_exposure_limit",
+                "unstuck_loss_allowance_pct",
+                "unstuck_close_pct",
+                "filter_noisiness_rolling_window",
+                "filter_volume_rolling_window",
+                "filter_volume_drop_pct",
             ].forEach((key) => {
                 if (destConfigFile.optimize && destConfigFile.optimize.bounds) {
                     if (srcConfigFile.bot && (side === "long" || side === "short")) {

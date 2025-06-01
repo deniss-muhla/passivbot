@@ -1,6 +1,6 @@
 export interface BotConfig {
-    close_grid_markup_range: number;
-    close_grid_min_markup: number;
+    close_grid_markup_end: number;
+    close_grid_markup_start: number;
     close_grid_qty_pct: number;
 
     close_trailing_grid_ratio: number;
@@ -56,6 +56,7 @@ export interface LiveConfig {
     max_n_cancellations_per_batch: number;
     max_n_creations_per_batch: number;
     max_n_restarts_per_day: number;
+    mimic_backtest_1m_delay: boolean;
     minimum_coin_age_days: number;
     ohlcvs_1m_rolling_window_days: number;
     ohlcvs_1m_update_after_minutes: number;
@@ -66,8 +67,8 @@ export interface LiveConfig {
 }
 
 export interface OptimizeBounds {
-    long_close_grid_markup_range: [number, number];
-    long_close_grid_min_markup: [number, number];
+    long_close_grid_markup_end: [number, number];
+    long_close_grid_markup_start: [number, number];
     long_close_grid_qty_pct: [number, number];
 
     long_close_trailing_grid_ratio: [number, number];
@@ -102,8 +103,8 @@ export interface OptimizeBounds {
     long_unstuck_loss_allowance_pct: [number, number];
     long_unstuck_threshold: [number, number];
 
-    short_close_grid_markup_range: [number, number];
-    short_close_grid_min_markup: [number, number];
+    short_close_grid_markup_end: [number, number];
+    short_close_grid_markup_start: [number, number];
     short_close_grid_qty_pct: [number, number];
 
     short_close_trailing_grid_ratio: [number, number];
@@ -151,16 +152,20 @@ export interface OptimizeConfig {
     population_size: number;
     round_to_n_significant_digits: number;
     scoring: string[];
+    write_all_results: boolean;
 }
 
 export interface ConfigFile {
     backtest?: {
         base_dir: string;
+        combine_ohlcvs: boolean;
         compress_cache: boolean;
         end_date: string;
         exchanges: string[];
+        gap_tolerance_ohlcvs_minutes: number;
         start_date: string;
         starting_balance: number;
+        use_btc_collateral: boolean;
     };
     bot?: {
         long: BotConfig;

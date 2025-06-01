@@ -9,19 +9,21 @@ import { writeJSON } from "fs-extra";
 // "ADA", "RARE"
 // "SUI" ?+ "ENA" ?+ "AAVE"
 
-const version = "HYPE-3.6.7-l";
-const startingVersion = undefined; //"HYPE-3.6.3-r"
+const version = "HYPE-4.0.5";
+const templateVersion = "HYPE-4.4";
+const startingVersion = "bybit-HYPE-4.0.2-best";
+const disableOptimizationLong: boolean = false;
+const disableOptimizationShort: boolean = false;
+const nPositionsMin = 1;
+const nPositionsMax = 1;
+const configSymbols: string[] = ["HYPE"];
+const totalWalletExposureLimit: [number, number] = [0.75, 1];
+
 const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
 const startingConfigPath = startingVersion ? path.resolve(PATHS.CONFIGS, `bybit-${startingVersion}`) : undefined;
 //const optimizationPrimarySymbols: string[] = ["BTC"];
-const configSymbols: string[] = ["HYPE"];
-const nPositionsMin = 1;
-const nPositionsMax = 1;
-const totalWalletExposureLimit: [number, number] = [0.75, 1];
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${version}.json`);
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${templateVersion}.json`);
 const startTime = new Date();
-const disableOptimizationLong: boolean = false;
-const disableOptimizationShort: boolean = true;
 
 const optimize = async (dateRange: number) => {
     const config = Config.createFromTemplateConfigFile(
