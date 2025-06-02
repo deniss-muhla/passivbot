@@ -1,6 +1,6 @@
 {
-    "duration": "01:29:55",
-    "version": "HYPE-4.0.4",
+    "duration": "01:30:59",
+    "version": "HYPE-4.0.7",
     "symbols": [
         "HYPE"
     ],
@@ -13,5 +13,5 @@
         0.75,
         1
     ],
-    "templateConfigFilePath": "/app/configs/templates/bybit-HYPE-4.4.json"
+    "templateConfigFilePath": "/app/configs/templates/bybit-HYPE-4.9.json"
 }

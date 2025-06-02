@@ -3,10 +3,10 @@
         "base_dir": "backtests",
         "combine_ohlcvs": true,
         "compress_cache": true,
-        "end_date": "2025-05-31",
+        "end_date": "2025-06-01",
         "exchanges": ["bybit"],
         "gap_tolerance_ohlcvs_minutes": 120,
-        "start_date": "2024-01-17",
+        "start_date": "2024-01-18",
         "starting_balance": 500,
         "use_btc_collateral": false,
         "coins": {
