@@ -126,12 +126,12 @@
         1
       ],
       "long_close_trailing_retracement_pct": [
-        0.01,
-        0.01
+        0.0001,
+        0.06
       ],
       "long_close_trailing_threshold_pct": [
-        0.01,
-        0.01
+        -0.01,
+        0.06
       ],
       "long_ema_span_0": [
         200,
@@ -234,12 +234,12 @@
         1
       ],
       "short_close_trailing_retracement_pct": [
-        0.01,
-        0.01
+        0.0001,
+        0.06
       ],
       "short_close_trailing_threshold_pct": [
-        0.01,
-        0.01
+        -0.01,
+        0.06
       ],
       "short_ema_span_0": [
         200,
@@ -325,6 +325,7 @@
     "compress_results_file": true,
     "crossover_probability": 0.64,
     "enable_overrides": [
+      "loss_close_trailing",
       "lossless_entry_trailing"
     ],
     "iters": 300000,
