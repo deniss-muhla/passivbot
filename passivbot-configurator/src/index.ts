@@ -9,8 +9,8 @@ import { writeJSON } from "fs-extra";
 // "ADA", "RARE"
 // "SUI" ?+ "ENA" ?+ "AAVE"
 
-const version = "HYPE-4.0.9";
-const templateVersion = "HYPE-4.11";
+const version = "HYPE-4.0.11";
+const templateVersion = "HYPE-4.12";
 const startingVersion = undefined; //"HYPE-4.0.6-best";
 const disableOptimizationLong: boolean = false;
 const disableOptimizationShort: boolean = false;

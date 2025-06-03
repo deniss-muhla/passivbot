@@ -103,8 +103,8 @@
             "long_close_grid_qty_pct": [0.05, 1],
             "long_close_trailing_grid_ratio": [0, 0.1],
             "long_close_trailing_qty_pct": [0.05, 1],
-            "long_close_trailing_retracement_pct": [0.01, 0.06],
-            "long_close_trailing_threshold_pct": [0.001, 0.01],
+            "long_close_trailing_retracement_pct": [0.001, 0.01],
+            "long_close_trailing_threshold_pct": [0.01, 0.06],
             "long_ema_span_0": [200, 1440],
             "long_ema_span_1": [200, 1440],
 
@@ -158,7 +158,7 @@
         },
         "compress_results_file": true,
         "crossover_probability": 0.64,
-        "enable_overrides": [],
+        "enable_overrides": ["loss_close_trailing", "lossless_entry_trailing"],
         "iters": 300000,
         "limits": {
             "penalize_if_lower_than_gain": 100,
