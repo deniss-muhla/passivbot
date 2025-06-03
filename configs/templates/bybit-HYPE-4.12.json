@@ -158,7 +158,7 @@
         },
         "compress_results_file": true,
         "crossover_probability": 0.64,
-        "enable_overrides": ["loss_close_trailing", "lossless_entry_trailing"],
+        "enable_overrides": [],
         "iters": 300000,
         "limits": {
             "penalize_if_lower_than_gain": 100,
