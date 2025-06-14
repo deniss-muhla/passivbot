@@ -9,24 +9,40 @@ import { writeJSON } from "fs-extra";
 // "ADA", "RARE"
 // "SUI" ?+ "ENA" ?+ "AAVE"
 
-const version = "HYPE-5.2.0";
 // HYPE-4.0.11-best-r
 // HYPE-5.0.0-safe-best
 // HYPE-5.1.0-grid-close-best
 
-const templateVersion = "HYPE-5.2";
-const startingVersion = undefined; //"HYPE-4.0.6-best";
-const disableOptimizationLong: boolean = false;
-const disableOptimizationShort: boolean = false;
-const nPositionsMin = 1;
-const nPositionsMax = 1;
-const configSymbols: string[] = ["HYPE"];
-const totalWalletExposureLimit: [number, number] = [0.75, 1];
+interface ConfigOptions {
+    version: string;
+    templateVersion: string;
+    startingVersion?: string;
+    disableOptimizationLong: boolean;
+    disableOptimizationShort: boolean;
+    nPositionsMin: number;
+    nPositionsMax: number;
+    configSymbols: string[];
+    totalWalletExposureLimit: [number, number];
+}
 
-const configPath = path.resolve(PATHS.CONFIGS, `bybit-${version}`);
-const startingConfigPath = startingVersion ? path.resolve(PATHS.CONFIGS, `bybit-${startingVersion}`) : undefined;
+const configOptions: ConfigOptions = {
+    version: "HYPE-5.2.2",
+    templateVersion: "HYPE-5.2",
+    startingVersion: undefined, //"HYPE-4.0.6-best",
+    disableOptimizationLong: false,
+    disableOptimizationShort: false,
+    nPositionsMin: 1,
+    nPositionsMax: 1,
+    configSymbols: ["HYPE"],
+    totalWalletExposureLimit: [0.75, 1],
+};
+
+const configPath = path.resolve(PATHS.CONFIGS, `bybit-${configOptions.version}`);
+const startingConfigPath = configOptions.startingVersion
+    ? path.resolve(PATHS.CONFIGS, `bybit-${configOptions.startingVersion}`)
+    : undefined;
 //const optimizationPrimarySymbols: string[] = ["BTC"];
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${templateVersion}.json`);
+const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${configOptions.templateVersion}.json`);
 const startTime = new Date();
 
 const optimize = async (dateRange: number) => {
@@ -36,13 +52,13 @@ const optimize = async (dateRange: number) => {
         templateConfigFilePath,
         startingConfigPath
     );
-    config.setSymbols(configSymbols);
-    config.setOptimizationBoundsNPositions(nPositionsMin, nPositionsMax);
+    config.setSymbols(configOptions.configSymbols);
+    config.setOptimizationBoundsNPositions(configOptions.nPositionsMin, configOptions.nPositionsMax);
     config.setDateRange(dateRange);
 
     if (config.configFile.optimize) {
-        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = totalWalletExposureLimit;
-        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = totalWalletExposureLimit;
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = configOptions.totalWalletExposureLimit;
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = configOptions.totalWalletExposureLimit;
     }
 
     config.save();
@@ -50,11 +66,11 @@ const optimize = async (dateRange: number) => {
     await writeJSON(
         path.resolve(configPath, "meta.json"),
         {
-            version,
+            version: configOptions.version,
             //optimizationPrimarySymbols,
-            symbols: configSymbols,
+            symbols: configOptions.configSymbols,
             dateRange,
-            nPositions: [nPositionsMin, nPositionsMax],
+            nPositions: [configOptions.nPositionsMin, configOptions.nPositionsMax],
             templateConfigFilePath,
         },
         { spaces: 4 }
@@ -64,11 +80,11 @@ const optimize = async (dateRange: number) => {
     config.applyOptimizedConfig();
 
     // Save config
-    config.setSymbols(configSymbols);
+    config.setSymbols(configOptions.configSymbols);
     config.save();
     await config.backtest();
 
-    for (const symbol of configSymbols) {
+    for (const symbol of configOptions.configSymbols) {
         const symbolConfig = Config.createFromTemplateConfigFile(
             symbol,
             configPath,
@@ -92,25 +108,25 @@ const optimize = async (dateRange: number) => {
 
 const optimizeSymbols = async (dateRange: number) => {
     const config = Config.load("config", configPath);
-    config.setSymbols(configSymbols);
+    config.setSymbols(configOptions.configSymbols);
     config.setDateRange(dateRange);
     config.save();
 
     await writeJSON(
         path.resolve(configPath, "meta.json"),
         {
-            version,
+            version: configOptions.version,
             //optimizationPrimarySymbols,
-            symbols: configSymbols,
+            symbols: configOptions.configSymbols,
             dateRange,
-            nPositions: [nPositionsMin, nPositionsMax],
-            totalWalletExposureLimit,
+            nPositions: [configOptions.nPositionsMin, configOptions.nPositionsMax],
+            totalWalletExposureLimit: configOptions.totalWalletExposureLimit,
             templateConfigFilePath,
         },
         { spaces: 4 }
     );
 
-    for (const symbol of configSymbols) {
+    for (const symbol of configOptions.configSymbols) {
         const symbolConfig = Config.createFromTemplateConfigFile(
             symbol,
             configPath,
@@ -140,7 +156,7 @@ const backtest = async (dateRange: number) => {
 
     await config.backtest();
 
-    for (const symbol of configSymbols) {
+    for (const symbol of configOptions.configSymbols) {
         const symbolConfig = Config.load(symbol, configPath);
         symbolConfig.setDateRange(dateRange);
         symbolConfig.save();
@@ -156,36 +172,36 @@ const optimizeSingle = async (dateRange: number) => {
         templateConfigFilePath,
         startingConfigPath
     );
-    config.setSymbols(configSymbols);
-    config.setOptimizationBoundsNPositions(nPositionsMin, nPositionsMax);
+    config.setSymbols(configOptions.configSymbols);
+    config.setOptimizationBoundsNPositions(configOptions.nPositionsMin, configOptions.nPositionsMax);
     config.setDateRange(dateRange);
 
     if (config.configFile.optimize) {
-        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = totalWalletExposureLimit;
-        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = totalWalletExposureLimit;
+        config.configFile.optimize.bounds.long_total_wallet_exposure_limit = configOptions.totalWalletExposureLimit;
+        config.configFile.optimize.bounds.short_total_wallet_exposure_limit = configOptions.totalWalletExposureLimit;
     }
 
-    disableOptimizationLong && config.disableOptimizationLong();
-    disableOptimizationShort && config.disableOptimizationShort();
+    configOptions.disableOptimizationLong && config.disableOptimizationLong();
+    configOptions.disableOptimizationShort && config.disableOptimizationShort();
 
     config.save();
 
     await config.optimize();
     await config.analyzeOptimizationResults();
     config.copyOptimizedConfig();
-    config.setSymbols(configSymbols);
+    config.setSymbols(configOptions.configSymbols);
     config.save();
 
     await writeJSON(
         path.resolve(configPath, "meta.json"),
         {
             duration: formatDuration(new Date().getTime() - startTime.getTime()),
-            version,
+            version: configOptions.version,
             //optimizationPrimarySymbols,
-            symbols: configSymbols,
+            symbols: configOptions.configSymbols,
             dateRange,
-            nPositions: [nPositionsMin, nPositionsMax],
-            totalWalletExposureLimit,
+            nPositions: [configOptions.nPositionsMin, configOptions.nPositionsMax],
+            totalWalletExposureLimit: configOptions.totalWalletExposureLimit,
             templateConfigFilePath,
         },
         { spaces: 4 }
@@ -201,6 +217,8 @@ const backtestSingle = async (dateRange: number) => {
     await config.backtest();
 };
 
+const optimizeDateRangeDays = 80; // 160
+
 (async () => {
     //await optimizeSingle(7 * 4 * 1);
     //await optimizeSingle(7 * 4 * 12);
@@ -208,10 +226,10 @@ const backtestSingle = async (dateRange: number) => {
     // await sleep(2000);
     // await backtestSingle(7 * 4 * 1);
 
-    await optimizeSingle(160);
+    await optimizeSingle(optimizeDateRangeDays);
 
     await sleep(2000);
-    await backtestSingle(160);
+    await backtestSingle(optimizeDateRangeDays);
 
     await sleep(2000);
     await backtestSingle(14);
