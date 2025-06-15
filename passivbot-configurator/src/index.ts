@@ -23,29 +23,23 @@ interface ConfigOptions {
     nPositionsMax: number;
     configSymbols: string[];
     totalWalletExposureLimit: [number, number];
+    dateRange: number;
+    isBacktestOnly?: boolean;
 }
 
-const configOptions: ConfigOptions = {
-    version: "HYPE-5.2.2",
-    templateVersion: "HYPE-5.2",
-    startingVersion: undefined, //"HYPE-4.0.6-best",
-    disableOptimizationLong: false,
-    disableOptimizationShort: false,
-    nPositionsMin: 1,
-    nPositionsMax: 1,
-    configSymbols: ["HYPE"],
-    totalWalletExposureLimit: [0.75, 1],
-};
-
-const configPath = path.resolve(PATHS.CONFIGS, `bybit-${configOptions.version}`);
-const startingConfigPath = configOptions.startingVersion
-    ? path.resolve(PATHS.CONFIGS, `bybit-${configOptions.startingVersion}`)
-    : undefined;
-//const optimizationPrimarySymbols: string[] = ["BTC"];
-const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${configOptions.templateVersion}.json`);
 const startTime = new Date();
 
-const optimize = async (dateRange: number) => {
+const getConfigPaths = (configOptions: ConfigOptions) => {
+    const configPath = path.resolve(PATHS.CONFIGS, `bybit-${configOptions.version}`);
+    const startingConfigPath = configOptions.startingVersion
+        ? path.resolve(PATHS.CONFIGS, `bybit-${configOptions.startingVersion}`)
+        : undefined;
+    const templateConfigFilePath = path.resolve(PATHS.CONFIGS, `templates/bybit-${configOptions.templateVersion}.json`);
+    return { configPath, startingConfigPath, templateConfigFilePath };
+};
+
+const optimize = async (configOptions: ConfigOptions) => {
+    const { configPath, startingConfigPath, templateConfigFilePath } = getConfigPaths(configOptions);
     const config = Config.createFromTemplateConfigFile(
         "config",
         configPath,
@@ -54,7 +48,7 @@ const optimize = async (dateRange: number) => {
     );
     config.setSymbols(configOptions.configSymbols);
     config.setOptimizationBoundsNPositions(configOptions.nPositionsMin, configOptions.nPositionsMax);
-    config.setDateRange(dateRange);
+    config.setDateRange(configOptions.dateRange);
 
     if (config.configFile.optimize) {
         config.configFile.optimize.bounds.long_total_wallet_exposure_limit = configOptions.totalWalletExposureLimit;
@@ -69,7 +63,7 @@ const optimize = async (dateRange: number) => {
             version: configOptions.version,
             //optimizationPrimarySymbols,
             symbols: configOptions.configSymbols,
-            dateRange,
+            dateRange: configOptions.dateRange,
             nPositions: [configOptions.nPositionsMin, configOptions.nPositionsMax],
             templateConfigFilePath,
         },
@@ -92,7 +86,7 @@ const optimize = async (dateRange: number) => {
             startingConfigPath
         );
         symbolConfig.setSymbols([symbol]);
-        symbolConfig.setDateRange(dateRange * 2);
+        symbolConfig.setDateRange(configOptions.dateRange * 2);
         symbolConfig.setOptimizationGlobalBounds(config.configFile);
         symbolConfig.save();
         await symbolConfig.optimize();
@@ -106,10 +100,11 @@ const optimize = async (dateRange: number) => {
     }
 };
 
-const optimizeSymbols = async (dateRange: number) => {
+const optimizeSymbols = async (configOptions: ConfigOptions) => {
+    const { configPath, startingConfigPath, templateConfigFilePath } = getConfigPaths(configOptions);
     const config = Config.load("config", configPath);
     config.setSymbols(configOptions.configSymbols);
-    config.setDateRange(dateRange);
+    config.setDateRange(configOptions.dateRange);
     config.save();
 
     await writeJSON(
@@ -118,7 +113,7 @@ const optimizeSymbols = async (dateRange: number) => {
             version: configOptions.version,
             //optimizationPrimarySymbols,
             symbols: configOptions.configSymbols,
-            dateRange,
+            dateRange: configOptions.dateRange,
             nPositions: [configOptions.nPositionsMin, configOptions.nPositionsMax],
             totalWalletExposureLimit: configOptions.totalWalletExposureLimit,
             templateConfigFilePath,
@@ -134,7 +129,7 @@ const optimizeSymbols = async (dateRange: number) => {
             startingConfigPath
         );
         symbolConfig.setSymbols([symbol]);
-        symbolConfig.setDateRange(dateRange * 2);
+        symbolConfig.setDateRange(configOptions.dateRange * 2);
         symbolConfig.setOptimizationGlobalBounds(config.configFile);
         symbolConfig.save();
 
@@ -149,23 +144,25 @@ const optimizeSymbols = async (dateRange: number) => {
     }
 };
 
-const backtest = async (dateRange: number) => {
+const backtest = async (configOptions: ConfigOptions) => {
+    const { configPath } = getConfigPaths(configOptions);
     const config = Config.load("config", configPath);
-    config.setDateRange(dateRange);
+    config.setDateRange(configOptions.dateRange);
     config.save();
 
     await config.backtest();
 
     for (const symbol of configOptions.configSymbols) {
         const symbolConfig = Config.load(symbol, configPath);
-        symbolConfig.setDateRange(dateRange);
+        symbolConfig.setDateRange(configOptions.dateRange);
         symbolConfig.save();
 
         await symbolConfig.backtest();
     }
 };
 
-const optimizeSingle = async (dateRange: number) => {
+const optimizeSingle = async (configOptions: ConfigOptions) => {
+    const { configPath, startingConfigPath, templateConfigFilePath } = getConfigPaths(configOptions);
     const config = Config.createFromTemplateConfigFile(
         "config",
         configPath,
@@ -174,7 +171,7 @@ const optimizeSingle = async (dateRange: number) => {
     );
     config.setSymbols(configOptions.configSymbols);
     config.setOptimizationBoundsNPositions(configOptions.nPositionsMin, configOptions.nPositionsMax);
-    config.setDateRange(dateRange);
+    config.setDateRange(configOptions.dateRange);
 
     if (config.configFile.optimize) {
         config.configFile.optimize.bounds.long_total_wallet_exposure_limit = configOptions.totalWalletExposureLimit;
@@ -199,7 +196,7 @@ const optimizeSingle = async (dateRange: number) => {
             version: configOptions.version,
             //optimizationPrimarySymbols,
             symbols: configOptions.configSymbols,
-            dateRange,
+            dateRange: configOptions.dateRange,
             nPositions: [configOptions.nPositionsMin, configOptions.nPositionsMax],
             totalWalletExposureLimit: configOptions.totalWalletExposureLimit,
             templateConfigFilePath,
@@ -209,36 +206,56 @@ const optimizeSingle = async (dateRange: number) => {
     // await config.backtest();
 };
 
-const backtestSingle = async (dateRange: number) => {
+const backtestSingle = async (configOptions: ConfigOptions) => {
+    const { configPath } = getConfigPaths(configOptions);
     const config = Config.load("config", configPath);
-    config.setDateRange(dateRange);
+    config.setDateRange(configOptions.dateRange);
     config.save();
 
     await config.backtest();
 };
 
-const optimizeDateRangeDays = 80; // 160
-
 (async () => {
-    //await optimizeSingle(7 * 4 * 1);
-    //await optimizeSingle(7 * 4 * 12);
+    //await optimizeSingle(7 * 4 * 1, configOptions);
+    //await optimizeSingle(7 * 4 * 12, configOptions);
 
     // await sleep(2000);
-    // await backtestSingle(7 * 4 * 1);
+    // await backtestSingle(7 * 4 * 1, configOptions);
 
-    await optimizeSingle(optimizeDateRangeDays);
+    const optimizer = async (configOptions: ConfigOptions) => {
+        if (!configOptions.isBacktestOnly) {
+            await optimizeSingle(configOptions);
+        }
 
-    await sleep(2000);
-    await backtestSingle(optimizeDateRangeDays);
+        await sleep(2000);
+        await backtestSingle(configOptions);
 
-    await sleep(2000);
-    await backtestSingle(14);
+        await sleep(2000);
+        await backtestSingle({ ...configOptions, dateRange: 14 });
 
-    await sleep(2000);
-    await backtestSingle(500);
+        await sleep(2000);
+        await backtestSingle({ ...configOptions, dateRange: 500 });
+    };
 
-    //await optimize(7 * 2);
-    //await optimizeSymbols(7 * 2);
-    //await backtest(7 * 6);
-    //await backtest(7 * 12);
+    const HYPE_OPTIONS: Partial<ConfigOptions> = {
+        startingVersion: undefined,
+        disableOptimizationLong: false,
+        disableOptimizationShort: false,
+        nPositionsMin: 1,
+        nPositionsMax: 1,
+        configSymbols: ["HYPE"],
+        totalWalletExposureLimit: [0.75, 1],
+    };
+
+    await optimizer({
+        ...HYPE_OPTIONS,
+        version: "HYPE-5.4.0",
+        templateVersion: "HYPE-5.4",
+        dateRange: 160,
+    } as ConfigOptions);
+
+    //await optimize(7 * 2, configOptions);
+    //await optimizeSymbols(7 * 2, configOptions);
+    //await backtest(7 * 6, configOptions);
+    //await backtest(7 * 12, configOptions);
 })();
