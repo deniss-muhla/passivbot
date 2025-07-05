@@ -24,6 +24,8 @@ WORKDIR /app
 
 # Copy python source code
 COPY requirements.txt ./
+COPY requirements-rust.txt ./
+COPY requirements-live.txt ./
 COPY setup.py ./
 
 # Install Python dependencies (including maturin for Rust extension builds)
