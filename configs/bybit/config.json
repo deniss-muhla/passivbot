@@ -17,7 +17,7 @@
         "long": {
             "close_grid_markup_end": 0.01599,
             "close_grid_markup_start": 0.003934,
-            "close_grid_qty_pct": 0.8453,
+            "close_grid_qty_pct": 1,
             "close_trailing_grid_ratio": 0.08335,
             "close_trailing_qty_pct": 0.9856,
             "close_trailing_retracement_pct": 0.003116,
@@ -47,7 +47,7 @@
         "short": {
             "close_grid_markup_end": 0.01675,
             "close_grid_markup_start": 0.005459,
-            "close_grid_qty_pct": 0.8339,
+            "close_grid_qty_pct": 1,
             "close_trailing_grid_ratio": 0.04703,
             "close_trailing_qty_pct": 0.7229,
             "close_trailing_retracement_pct": 0.00118,
