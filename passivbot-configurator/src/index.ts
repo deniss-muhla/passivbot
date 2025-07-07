@@ -249,8 +249,8 @@ const backtestSingle = async (configOptions: ConfigOptions) => {
 
     await optimizer({
         ...HYPE_OPTIONS,
-        version: "HYPE-6.2.1",
-        templateVersion: "HYPE-6.2",
+        version: "HYPE-6.5.1",
+        templateVersion: "HYPE-6.5",
         dateRange: 160,
     } as ConfigOptions);
 
