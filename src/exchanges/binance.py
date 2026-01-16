@@ -1,6 +1,8 @@
 from passivbot import Passivbot, logging
 from uuid import uuid4
-from njit_funcs import round_
+import passivbot_rust as pbr
+
+round_ = pbr.round_
 import ccxt.pro as ccxt_pro
 import ccxt.async_support as ccxt_async
 import pprint
@@ -10,15 +12,16 @@ import numpy as np
 import json
 import passivbot_rust as pbr
 from copy import deepcopy
+from utils import ts_to_date, utc_ms
 from pure_funcs import (
     floatify,
-    ts_to_date_utc,
     calc_hash,
     determine_pos_side_ccxt,
     flatten,
     shorten_custom_id,
 )
-from procedures import print_async_exception, utc_ms, assert_correct_ccxt_version, load_broker_code
+from procedures import print_async_exception, assert_correct_ccxt_version, load_broker_code
+from config_utils import require_live_value
 
 assert_correct_ccxt_version(ccxt=ccxt_async)
 
@@ -30,7 +33,12 @@ class BinanceBot(Passivbot):
 
     def create_ccxt_sessions(self):
         self.broker_code_spot = load_broker_code("binance_spot")
-        for ccx, ccxt_module in [("cca", ccxt_async), ("ccp", ccxt_pro)]:
+        targets = [("cca", ccxt_async)]
+        if self.ws_enabled:
+            targets.append(("ccp", ccxt_pro))
+        elif self.endpoint_override:
+            logging.info("Skipping Binance websocket session due to custom endpoint override.")
+        for ccx, ccxt_module in targets:
             exchange_class = getattr(ccxt_module, "binanceusdm")
             setattr(
                 self,
@@ -40,9 +48,11 @@ class BinanceBot(Passivbot):
                         "apiKey": self.user_info["key"],
                         "secret": self.user_info["secret"],
                         "password": self.user_info["passphrase"],
+                        "enableRateLimit": True,
                     }
                 ),
             )
+            getattr(self, ccx).options.update(self._build_ccxt_options())
             getattr(self, ccx).options["defaultType"] = "swap"
             if self.broker_code:
                 for key in ["future", "delivery", "swap", "option"]:
@@ -50,6 +60,7 @@ class BinanceBot(Passivbot):
             if self.broker_code_spot:
                 for key in ["spot", "margin"]:
                     getattr(self, ccx).options["broker"][key] = "x-" + self.broker_code_spot
+            self._apply_endpoint_override(getattr(self, ccx))
 
     async def print_new_user_suggestion(self):
         between_print_wait_ms = 1000 * 60 * 60 * 4
@@ -107,18 +118,6 @@ class BinanceBot(Passivbot):
             self.qty_steps[symbol] = elm["precision"]["amount"]
             self.c_mults[symbol] = elm["contractSize"]
 
-    async def watch_balance(self):
-        while True:
-            try:
-                if self.stop_websocket:
-                    break
-                res = await self.ccp.watch_balance()
-                self.handle_balance_update(res)
-            except Exception as e:
-                logging.error(f"exception watch_balance {e}")
-                traceback.print_exc()
-                await asyncio.sleep(1)
-
     async def watch_orders(self):
         while True:
             try:
@@ -166,13 +165,10 @@ class BinanceBot(Passivbot):
             traceback.print_exc()
             return False
 
-    async def fetch_positions(self) -> ([dict], float):
-        # also fetches balance
-        fetched_positions, fetched_balance = None, None
+    async def fetch_positions(self):
+        fetched_positions = None
         try:
-            fetched_positions, fetched_balance = await asyncio.gather(
-                self.cca.fapiprivatev3_get_positionrisk(), self.cca.fetch_balance()
-            )
+            fetched_positions = await self.cca.fapiprivatev3_get_positionrisk()
             positions = []
             for elm in fetched_positions:
                 if float(elm["positionAmt"]) != 0.0:
@@ -184,19 +180,21 @@ class BinanceBot(Passivbot):
                             "price": float(elm["entryPrice"]),
                         }
                     )
-            balance = float(fetched_balance["info"]["totalCrossWalletBalance"])
-            if not hasattr(self, "previous_rounded_balance"):
-                self.previous_rounded_balance = balance
-            self.previous_rounded_balance = pbr.hysteresis_rounding(
-                balance,
-                self.previous_rounded_balance,
-                self.hyst_rounding_balance_pct,
-                self.hyst_rounding_balance_h,
-            )
-            return positions, self.previous_rounded_balance
+            return positions
         except Exception as e:
             logging.error(f"error fetching positions {e}")
             print_async_exception(fetched_positions)
+            traceback.print_exc()
+            return False
+
+    async def fetch_balance(self):
+        fetched_balance = None
+        try:
+            fetched_balance = await self.cca.fetch_balance()
+            balance = float(fetched_balance["info"]["totalCrossWalletBalance"])
+            return balance
+        except Exception as e:
+            logging.error(f"error fetching balance {e}")
             print_async_exception(fetched_balance)
             traceback.print_exc()
             return False
@@ -281,15 +279,17 @@ class BinanceBot(Passivbot):
         # but can fetch pnls for all symbols
         # fetch fills for all symbols with pos
         # fetch pnls for all symbols
-        # fills only needed for symbols with pos for trailing orders
         # binance returns at most 7 days worth of pnls per fetch unless both start_time and end_time are given
         if limit is None:
             limit = 1000
         else:
             limit = min(limit, 1000)
-        if start_time is None and end_time is None:
-            return await self.fetch_pnl(limit=limit)
+        if end_time is None:
+            if start_time is None:
+                return await self.fetch_pnl(limit=limit)
+            end_time = self.get_exchange_time() + 1000 * 60 * 60
         all_fetched = {}
+        week = 1000 * 60 * 60 * 24 * 7
         while True:
             fetched = await self.fetch_pnl(start_time, end_time, limit)
             if fetched == []:
@@ -298,12 +298,44 @@ class BinanceBot(Passivbot):
                 break
             for elm in fetched:
                 all_fetched[elm["tradeId"]] = elm
-            if start_time and end_time and len(fetched) < limit:
-                # means fetched all pnls inside [start_time, end_time] range
-                break
-            logging.info(f"fetched pnls until {ts_to_date_utc(fetched[-1]['timestamp'])[:19]}")
+            if len(fetched) < limit:
+                if start_time:
+                    if end_time:
+                        if end_time - start_time < week:
+                            break
+                    else:
+                        if self.get_exchange_time() - start_time < week:
+                            break
+            logging.info(
+                f"fetched {len(fetched)} pnls from {ts_to_date(fetched[0]['timestamp'])[:19]} until {ts_to_date(fetched[-1]['timestamp'])[:19]}"
+            )
             start_time = fetched[-1]["timestamp"]
         return sorted(all_fetched.values(), key=lambda x: x["timestamp"])
+
+    async def gather_fill_events(self, start_time=None, end_time=None, limit=None):
+        """Return canonical fill events for Binance (draft placeholder)."""
+        events = []
+        try:
+            fills = await self.fetch_pnls(start_time=start_time, end_time=end_time, limit=limit)
+        except Exception as exc:
+            logging.error(f"error gathering fill events (binance) {exc}")
+            return events
+        for fill in fills:
+            events.append(
+                {
+                    "id": fill.get("id") or fill.get("tradeId"),
+                    "timestamp": fill.get("timestamp"),
+                    "symbol": fill.get("symbol"),
+                    "side": fill.get("side"),
+                    "position_side": fill.get("position_side", fill.get("pside")),
+                    "qty": fill.get("qty") or fill.get("amount"),
+                    "price": fill.get("price"),
+                    "pnl": fill.get("pnl"),
+                    "fee": fill.get("fee"),
+                    "info": fill.get("info"),
+                }
+            )
+        return events
 
     async def fetch_fills_sub(self, symbol, start_time=None, end_time=None, limit=None):
         try:
@@ -329,14 +361,16 @@ class BinanceBot(Passivbot):
                 week = 1000 * 60 * 60 * 24 * 7.0
                 start_time_sub = start_time
                 while True:
+                    param_start_time = int(min(start_time_sub, self.get_exchange_time() - 1000 * 60))
+                    param_end_time = max(
+                        param_start_time, int(min(end_time, start_time_sub + week * 0.999))
+                    )
                     fills = await self.cca.fetch_my_trades(
                         symbol,
                         limit=limit,
                         params={
-                            "startTime": int(
-                                min(start_time_sub, self.get_exchange_time() - 1000 * 60)
-                            ),
-                            "endTime": int(min(end_time, start_time_sub + week * 0.999)),
+                            "startTime": param_start_time,
+                            "endTime": param_end_time,
                         },
                     )
                     if not fills:
@@ -345,7 +379,7 @@ class BinanceBot(Passivbot):
                             break
                         else:
                             logging.info(
-                                f"fetched 0 fills for {symbol} between {ts_to_date_utc(start_time_sub)[:19]} and {ts_to_date_utc(end_time)[:19]}"
+                                f"fetched 0 fills for {symbol} between {ts_to_date(start_time_sub)[:19]} and {ts_to_date(end_time)[:19]}"
                             )
                             start_time_sub += week
                             continue
@@ -355,7 +389,7 @@ class BinanceBot(Passivbot):
                             break
                         else:
                             logging.info(
-                                f"fetched 0 new fills for {symbol} between {ts_to_date_utc(start_time_sub)[:19]} and {ts_to_date_utc(end_time)[:19]}"
+                                f"fetched 0 new fills for {symbol} between {ts_to_date(start_time_sub)[:19]} and {ts_to_date(end_time)[:19]}"
                             )
                             start_time_sub += week
                             continue
@@ -367,7 +401,7 @@ class BinanceBot(Passivbot):
                         break
                     start_time_sub = fills[-1]["timestamp"]
                     logging.info(
-                        f"fetched {len(fills)} fill{'s' if len(fills) > 1 else ''} for {symbol} {ts_to_date_utc(fills[0]['timestamp'])[:19]}"
+                        f"fetched {len(fills)} fill{'s' if len(fills) > 1 else ''} for {symbol} {ts_to_date(fills[0]['timestamp'])[:19]}"
                     )
             all_fills = sorted(all_fills.values(), key=lambda x: x["timestamp"])
             for i in range(len(all_fills)):
@@ -411,86 +445,17 @@ class BinanceBot(Passivbot):
             traceback.print_exc()
             return False
 
-    async def execute_cancellation(self, order: dict) -> dict:
-        executed = None
-        try:
-            executed = await self.cca.cancel_order(order["id"], symbol=order["symbol"])
-            return executed
-        except Exception as e:
-            logging.error(f"error cancelling order {order} {e}")
-            if "-2011" not in str(e):
-                print_async_exception(executed)
-                traceback.print_exc()
-            return {}
-
-    async def execute_cancellations(self, orders: [dict]) -> [dict]:
-        if len(orders) == 0:
-            return []
-        if len(orders) == 1:
-            return [await self.execute_cancellation(orders[0])]
-        return await self.execute_multiple(orders, "execute_cancellation")
-
-    async def execute_order(self, order: dict) -> dict:
-        executed = None
-        try:
-            order_type = order["type"] if "type" in order else "limit"
-            params = {
-                "positionSide": order["position_side"].upper(),
-                "newClientOrderId": order["custom_id"],
-            }
-            if order_type == "limit":
-                params["timeInForce"] = (
-                    "GTX" if self.config["live"]["time_in_force"] == "post_only" else "GTC"
-                )
-            executed = await self.cca.create_order(
-                type=order_type,
-                symbol=order["symbol"],
-                side=order["side"],
-                amount=abs(order["qty"]),
-                price=order["price"],
-                params=params,
-            )
-            return executed
-        except Exception as e:
-            logging.error(f"error executing order {order} {e}")
-            print_async_exception(executed)
-            traceback.print_exc()
-            return {}
-
-    async def execute_orders(self, orders: [dict]) -> [dict]:
-        if len(orders) == 0:
-            return []
-        if len(orders) == 1:
-            return [await self.execute_order(orders[0])]
-        to_execute = []
-        for order in orders:
-            params = {
-                "positionSide": order["position_side"].upper(),
-                "newClientOrderId": order["custom_id"],
-            }
-            if order["type"] == "limit":
-                params["timeInForce"] = (
-                    "GTX" if self.config["live"]["time_in_force"] == "post_only" else "GTC"
-                )
-            to_execute.append(
-                {
-                    "type": "limit",
-                    "symbol": order["symbol"],
-                    "side": order["side"],
-                    "amount": abs(order["qty"]),
-                    "price": order["price"],
-                    "params": deepcopy(params),
-                }
-            )
-        executed = None
-        try:
-            executed = await self.cca.create_orders(to_execute)
-            return executed
-        except Exception as e:
-            logging.error(f"error executing orders {orders} {e}")
-            print_async_exception(executed)
-            traceback.print_exc()
-            return []
+    def get_order_execution_params(self, order: dict) -> dict:
+        # defined for each exchange
+        order_type = order.get("type", "limit")
+        params = {
+            "positionSide": order["position_side"].upper(),
+            "newClientOrderId": order["custom_id"],
+        }
+        if order_type == "limit":
+            tif = require_live_value(self.config, "time_in_force")
+            params["timeInForce"] = "GTX" if tif == "post_only" else "GTC"
+        return params
 
     async def update_exchange_config_by_symbols(self, symbols):
         coros_to_call_lev, coros_to_call_margin_mode = {}, {}
@@ -503,7 +468,9 @@ class BinanceBot(Passivbot):
                 logging.error(f"{symbol}: error setting cross mode {e}")
             try:
                 coros_to_call_lev[symbol] = asyncio.create_task(
-                    self.cca.set_leverage(int(self.live_configs[symbol]["leverage"]), symbol=symbol)
+                    self.cca.set_leverage(
+                        int(self.config_get(["live", "leverage"], symbol=symbol)), symbol=symbol
+                    )
                 )
             except Exception as e:
                 logging.error(f"{symbol}: a error setting leverage {e}")
@@ -564,12 +531,6 @@ class BinanceBot(Passivbot):
         all_fetched_d = {x[0]: x for x in all_fetched}
         return sorted(all_fetched_d.values(), key=lambda x: x[0])
 
-    def format_custom_ids(self, orders: [dict]) -> [dict]:
-        # binance needs broker code at the beginning of the custom_id
-        new_orders = []
-        for order in orders:
-            order["custom_id"] = (
-                "x-" + self.broker_code + shorten_custom_id(order["custom_id"]) + uuid4().hex
-            )[: self.custom_id_max_length]
-            new_orders.append(order)
-        return new_orders
+    def format_custom_id_single(self, order_type_id: int) -> str:
+        formatted = super().format_custom_id_single(order_type_id)
+        return ("x-" + self.broker_code + formatted)[: self.custom_id_max_length]

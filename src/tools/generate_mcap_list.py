@@ -6,8 +6,8 @@ import os
 import traceback
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from pure_funcs import calc_hash, symbol_to_coin, ts_to_date_utc
-from procedures import utc_ms
+from utils import symbol_to_coin, ts_to_date, utc_ms
+from pure_funcs import calc_hash
 
 
 def is_stablecoin(elm):
@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
     market_caps = get_top_market_caps(args.n_coins, args.minimum_market_cap_millions, args.exchange)
     if args.output is None:
-        fname = f"configs/approved_coins_{ts_to_date_utc(utc_ms())[:10]}"
+        fname = f"configs/approved_coins_{ts_to_date(utc_ms())[:10]}"
         fname += f"_{args.n_coins}_coins_{int(args.minimum_market_cap_millions)}_min_mcap"
         if args.exchange is not None:
             fname += "_" + "_".join(args.exchange.split(","))

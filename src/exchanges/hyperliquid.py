@@ -8,25 +8,23 @@ import traceback
 import json
 import numpy as np
 import passivbot_rust as pbr
+from utils import ts_to_date, symbol_to_coin, coin_to_symbol, utc_ms
+from config_utils import require_live_value
 from pure_funcs import (
     multi_replace,
     floatify,
-    ts_to_date_utc,
     calc_hash,
     shorten_custom_id,
-    coin2symbol,
-    symbol_to_coin,
 )
-from njit_funcs import (
-    calc_diff,
-    round_,
-    round_up,
-    round_dn,
-    round_dynamic,
-    round_dynamic_up,
-    round_dynamic_dn,
-)
-from procedures import print_async_exception, utc_ms, assert_correct_ccxt_version
+
+calc_order_price_diff = pbr.calc_order_price_diff
+round_ = pbr.round_
+round_up = pbr.round_up
+round_dn = pbr.round_dn
+round_dynamic = pbr.round_dynamic
+round_dynamic_up = pbr.round_dynamic_up
+round_dynamic_dn = pbr.round_dynamic_dn
+from procedures import print_async_exception, assert_correct_ccxt_version
 from sortedcontainers import SortedDict
 
 assert_correct_ccxt_version(ccxt=ccxt_async)
@@ -44,22 +42,26 @@ class HyperliquidBot(Passivbot):
             )
             self.user_info["is_vault"] = False
         self.max_n_concurrent_ohlcvs_1m_updates = 2
+        self.custom_id_max_length = 34
 
     def create_ccxt_sessions(self):
-        self.ccp = getattr(ccxt_pro, self.exchange)(
-            {
-                "walletAddress": self.user_info["wallet_address"],
-                "privateKey": self.user_info["private_key"],
-            }
-        )
-        self.ccp.options["defaultType"] = "swap"
-        self.cca = getattr(ccxt_async, self.exchange)(
-            {
-                "walletAddress": self.user_info["wallet_address"],
-                "privateKey": self.user_info["private_key"],
-            }
-        )
+        creds = {
+            "walletAddress": self.user_info["wallet_address"],
+            "privateKey": self.user_info["private_key"],
+        }
+        if self.ws_enabled:
+            self.ccp = getattr(ccxt_pro, self.exchange)(creds)
+            self.ccp.options.update(self._build_ccxt_options())
+            self.ccp.options["defaultType"] = "swap"
+            self.ccp.options["fetchMarkets"]["types"] = ["swap"]
+            self._apply_endpoint_override(self.ccp)
+        elif self.endpoint_override:
+            logging.info("Skipping Hyperliquid websocket session due to custom endpoint override.")
+        self.cca = getattr(ccxt_async, self.exchange)(creds)
+        self.cca.options.update(self._build_ccxt_options())
         self.cca.options["defaultType"] = "swap"
+        self.cca.options["fetchMarkets"]["types"] = ["swap"]
+        self._apply_endpoint_override(self.cca)
 
     def set_market_specific_settings(self):
         super().set_market_specific_settings()
@@ -83,25 +85,6 @@ class HyperliquidBot(Passivbot):
             )
         self.n_decimal_places = 6
         self.n_significant_figures = 5
-
-    async def watch_balance(self):
-        # hyperliquid ccxt watch balance not supported.
-        # relying instead on periodic REST updates
-        res = None
-        while True:
-            try:
-                if self.stop_websocket:
-                    break
-                res = await self.cca.fetch_balance()
-                res[self.quote]["total"] = float(res["info"]["marginSummary"]["accountValue"]) - sum(
-                    [float(x["position"]["unrealizedPnl"]) for x in res["info"]["assetPositions"]]
-                )
-                self.handle_balance_update(res)
-                await asyncio.sleep(10)
-            except Exception as e:
-                logging.error(f"exception watch_balance {res} {e}")
-                traceback.print_exc()
-                await asyncio.sleep(1)
 
     async def watch_orders(self):
         res = None
@@ -151,29 +134,49 @@ class HyperliquidBot(Passivbot):
             traceback.print_exc()
             return False
 
-    async def fetch_positions(self) -> ([dict], float):
+    async def _fetch_positions_and_balance(self):
+        info = await self.cca.fetch_balance()
+        positions = [
+            {
+                "symbol": self.coin_to_symbol(x["position"]["coin"]),
+                "position_side": ("long" if (size := float(x["position"]["szi"])) > 0.0 else "short"),
+                "size": size,
+                "price": float(x["position"]["entryPx"]),
+            }
+            for x in info["info"]["assetPositions"]
+        ]
+        balance = float(info["info"]["marginSummary"]["accountValue"]) - sum(
+            [float(x["position"]["unrealizedPnl"]) for x in info["info"]["assetPositions"]]
+        )
+        return positions, balance
+
+    async def fetch_positions(self):
         info = None
         try:
-            info = await self.cca.fetch_balance()
-            balance = float(info["info"]["marginSummary"]["accountValue"]) - sum(
-                [float(x["position"]["unrealizedPnl"]) for x in info["info"]["assetPositions"]]
-            )
-            positions = [
-                {
-                    "symbol": x["position"]["coin"] + "/USDC:USDC",
-                    "position_side": (
-                        "long" if (size := float(x["position"]["szi"])) > 0.0 else "short"
-                    ),
-                    "size": size,
-                    "price": float(x["position"]["entryPx"]),
-                }
-                for x in info["info"]["assetPositions"]
-            ]
-
-            return positions, balance
+            positions, balance = await self._fetch_positions_and_balance()
+            self._last_hl_positions_balance = (positions, balance)
+            self._hl_positions_balance_applied = False
+            return positions
         except Exception as e:
-            logging.error(f"error fetching positions and balance {e}")
+            logging.error(f"error fetching positions {e}")
             print_async_exception(info)
+            traceback.print_exc()
+            return False
+
+    async def fetch_balance(self):
+        try:
+            cached = getattr(self, "_last_hl_positions_balance", None)
+            applied = getattr(self, "_hl_positions_balance_applied", False)
+            if cached and not applied:
+                positions, balance = cached
+                self._hl_positions_balance_applied = True
+                return balance
+            positions, balance = await self._fetch_positions_and_balance()
+            self._last_hl_positions_balance = (positions, balance)
+            self._hl_positions_balance_applied = True
+            return balance
+        except Exception as e:
+            logging.error(f"error fetching balance {e}")
             traceback.print_exc()
             return False
 
@@ -187,7 +190,7 @@ class HyperliquidBot(Passivbot):
                 body=json.dumps({"type": "allMids"}),
             )
             return {
-                coin2symbol(coin, self.quote): {
+                self.coin_to_symbol(coin): {
                     "bid": float(fetched[coin]),
                     "ask": float(fetched[coin]),
                     "last": float(fetched[coin]),
@@ -256,11 +259,36 @@ class HyperliquidBot(Passivbot):
                 break
             prev_hash = new_hash
             logging.info(
-                f"debug fetching pnls {ts_to_date_utc(fetched[-1]['timestamp'])} len {len(fetched)}"
+                f"debug fetching pnls {ts_to_date(fetched[-1]['timestamp'])} len {len(fetched)}"
             )
             start_time = fetched[-1]["timestamp"] - 1000
             limit = 2000
         return sorted(all_fetched.values(), key=lambda x: x["timestamp"])
+
+    async def gather_fill_events(self, start_time=None, end_time=None, limit=None):
+        """Return canonical fill events for Hyperliquid (draft placeholder)."""
+        events = []
+        try:
+            fills = await self.fetch_pnls(start_time=start_time, end_time=end_time, limit=limit)
+        except Exception as exc:
+            logging.error(f"error gathering fill events (hyperliquid) {exc}")
+            return events
+        for fill in fills:
+            events.append(
+                {
+                    "id": fill.get("id"),
+                    "timestamp": fill.get("timestamp"),
+                    "symbol": fill.get("symbol"),
+                    "side": fill.get("side"),
+                    "position_side": fill.get("position_side"),
+                    "qty": fill.get("amount"),
+                    "price": fill.get("price"),
+                    "pnl": fill.get("pnl"),
+                    "fee": fill.get("fee"),
+                    "info": fill.get("info"),
+                }
+            )
+        return events
 
     async def fetch_pnl(
         self,
@@ -304,38 +332,38 @@ class HyperliquidBot(Passivbot):
             traceback.print_exc()
             return {}
 
-    async def execute_cancellations(self, orders: [dict]) -> [dict]:
-        return await self.execute_multiple(orders, "execute_cancellation")
-
-    def did_cancel_order(self, cancelled) -> bool:
+    def did_cancel_order(self, executed, order=None) -> bool:
+        if isinstance(executed, list) and len(executed) == 1:
+            return self.did_cancel_order(executed[0])
         try:
-            return "status" in cancelled and cancelled["status"] == "success"
+            return "status" in executed and executed["status"] == "success"
         except:
             return False
+
+    def get_order_execution_params(self, order: dict) -> dict:
+        # defined for each exchange
+        params = {
+            "reduceOnly": order["reduce_only"],
+            "timeInForce": (
+                "Alo" if require_live_value(self.config, "time_in_force") == "post_only" else "Gtc"
+            ),
+            "clientOrderId": order["custom_id"],  # TODO
+        }
+        if self.user_info["is_vault"]:
+            params["vaultAddress"] = self.user_info["wallet_address"]
+        return params
 
     async def execute_order(self, order: dict) -> dict:
         executed = None
         try:
-            params = {
-                "reduceOnly": order["reduce_only"],
-                "timeInForce": (
-                    "Alo" if self.config["live"]["time_in_force"] == "post_only" else "Gtc"
-                ),
-            }
-            if self.user_info["is_vault"]:
-                params["vaultAddress"] = self.user_info["wallet_address"]
-            executed = await self.cca.create_order(
-                symbol=order["symbol"],
-                type=order["type"] if "type" in order else "limit",
-                side=order["side"],
-                amount=order["qty"],
-                price=order["price"],
-                params=params,
-            )
+            executed = await super().execute_order(order)
             return executed
         except Exception as e:
-            if self.adjust_min_cost_on_error(e):
-                return {}
+            try:
+                if self.adjust_min_cost_on_error(e, order):
+                    return {}
+            except Exception as e0:
+                logging.error(f"error with adjust_min_cost_on_error {e0}")
             logging.error(f"error executing order {order} {e}")
             print_async_exception(executed)
             traceback.print_exc()
@@ -353,7 +381,7 @@ class HyperliquidBot(Passivbot):
         except:
             return False
 
-    def adjust_min_cost_on_error(self, error):
+    def adjust_min_cost_on_error(self, error, order=None):
         any_adjusted = False
         successful_orders = []
         str_e = error.args[0]
@@ -377,7 +405,7 @@ class HyperliquidBot(Passivbot):
                             raise Exception(f"No symbol match for asset_id={asset_id}")
                         new_min_cost = pbr.round_(self.min_costs[symbol] * 1.1, 0.1)
                         logging.info(
-                            f"caught {elm['error']} {symbol}. Upping min_cost from {self.min_costs[symbol]} to {new_min_cost}"
+                            f"caught {elm['error']} {symbol}. Upping min_cost from {self.min_costs[symbol]} to {new_min_cost}. Order: {order}"
                         )
                         self.min_costs[symbol] = new_min_cost
                         any_adjusted = True
@@ -405,7 +433,7 @@ class HyperliquidBot(Passivbot):
                     "leverage": int(
                         min(
                             self.max_leverage[symbol],
-                            self.live_configs[symbol]["leverage"],
+                            self.config_get(["live", "leverage"], symbol=symbol),
                         )
                     )
                 }
@@ -433,9 +461,9 @@ class HyperliquidBot(Passivbot):
     async def update_exchange_config(self):
         pass
 
-    def calc_ideal_orders(self):
+    async def calc_ideal_orders(self):
         # hyperliquid needs custom price rounding
-        ideal_orders = super().calc_ideal_orders()
+        ideal_orders = await super().calc_ideal_orders()
         for sym in ideal_orders:
             for i in range(len(ideal_orders[sym])):
                 if ideal_orders[sym][i]["side"] == "sell":
@@ -457,3 +485,7 @@ class HyperliquidBot(Passivbot):
                     ideal_orders[sym][i]["price"], self.price_steps[sym]
                 )
         return ideal_orders
+
+    def format_custom_id_single(self, order_type_id: int) -> str:
+        formatted = super().format_custom_id_single(order_type_id)
+        return (formatted)[: self.custom_id_max_length]

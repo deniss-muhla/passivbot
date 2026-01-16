@@ -7,25 +7,24 @@ import asyncio
 import traceback
 import json
 import numpy as np
+from downloader import coin_to_symbol
+from utils import ts_to_date, utc_ms
+from config_utils import require_live_value
 from pure_funcs import (
     multi_replace,
     floatify,
-    ts_to_date_utc,
     calc_hash,
     shorten_custom_id,
-    coin2symbol,
-    symbol_to_coin,
 )
-from njit_funcs import (
-    calc_diff,
-    round_,
-    round_up,
-    round_dn,
-    round_dynamic,
-    round_dynamic_up,
-    round_dynamic_dn,
-)
-from procedures import print_async_exception, utc_ms, assert_correct_ccxt_version
+import passivbot_rust as pbr
+
+round_ = pbr.round_
+round_up = pbr.round_up
+round_dn = pbr.round_dn
+round_dynamic = pbr.round_dynamic
+round_dynamic_up = pbr.round_dynamic_up
+round_dynamic_dn = pbr.round_dynamic_dn
+from procedures import print_async_exception, assert_correct_ccxt_version
 from sortedcontainers import SortedDict
 
 assert_correct_ccxt_version(ccxt=ccxt_async)
@@ -38,30 +37,39 @@ class GateIOBot(Passivbot):
             120  # gateio has stricter rate limiting on fetching ohlcvs
         )
         self.hedge_mode = False
-        self.config["live"]["max_n_cancellations_per_batch"] = min(
-            self.config["live"]["max_n_cancellations_per_batch"], 20
-        )
-        self.config["live"]["max_n_creations_per_batch"] = min(
-            self.config["live"]["max_n_creations_per_batch"], 10
-        )
+        max_cancel = int(require_live_value(config, "max_n_cancellations_per_batch"))
+        self.config["live"]["max_n_cancellations_per_batch"] = min(max_cancel, 20)
+        max_create = int(require_live_value(config, "max_n_creations_per_batch"))
+        self.config["live"]["max_n_creations_per_batch"] = min(max_create, 10)
+        self.custom_id_max_length = 28
 
     def create_ccxt_sessions(self):
-        self.ccp = getattr(ccxt_pro, self.exchange)(
-            {
-                "apiKey": self.user_info["key"],
-                "secret": self.user_info["secret"],
-                "headers": {"X-Gate-Channel-Id": self.broker_code} if self.broker_code else {},
-            }
-        )
-        self.ccp.options["defaultType"] = "swap"
+        headers = {"X-Gate-Channel-Id": self.broker_code} if self.broker_code else {}
+        if self.ws_enabled:
+            self.ccp = getattr(ccxt_pro, self.exchange)(
+                {
+                    "apiKey": self.user_info["key"],
+                    "secret": self.user_info["secret"],
+                    "headers": headers,
+                    "enableRateLimit": True,
+                }
+            )
+            self.ccp.options.update(self._build_ccxt_options())
+            self.ccp.options["defaultType"] = "swap"
+            self._apply_endpoint_override(self.ccp)
+        elif self.endpoint_override:
+            logging.info("Skipping GateIO websocket session due to custom endpoint override.")
         self.cca = getattr(ccxt_async, self.exchange)(
             {
                 "apiKey": self.user_info["key"],
                 "secret": self.user_info["secret"],
-                "headers": {"X-Gate-Channel-Id": self.broker_code} if self.broker_code else {},
+                "headers": headers,
+                "enableRateLimit": True,
             }
         )
+        self.cca.options.update(self._build_ccxt_options())
         self.cca.options["defaultType"] = "swap"
+        self._apply_endpoint_override(self.cca)
 
     def set_market_specific_settings(self):
         super().set_market_specific_settings()
@@ -90,25 +98,6 @@ class GateIOBot(Passivbot):
         self.utc_offset = round((result[-1][0] - utc_ms()) / (1000 * 60 * 60)) * (1000 * 60 * 60)
         if verbose:
             logging.info(f"Exchange time offset is {self.utc_offset}ms compared to UTC")
-
-    async def watch_balance(self):
-        # hyperliquid ccxt watch balance not supported.
-        # relying instead on periodic REST updates
-        res = None
-        while True:
-            try:
-                if self.stop_websocket:
-                    break
-                res = await self.cca.fetch_balance()
-                res[self.quote]["total"] = float(res["info"]["marginSummary"]["accountValue"]) - sum(
-                    [float(x["position"]["unrealizedPnl"]) for x in res["info"]["assetPositions"]]
-                )
-                self.handle_balance_update(res)
-                await asyncio.sleep(10)
-            except Exception as e:
-                logging.error(f"exception watch_balance {res} {e}")
-                traceback.print_exc()
-                await asyncio.sleep(1)
 
     async def watch_orders(self):
         res = None
@@ -151,17 +140,10 @@ class GateIOBot(Passivbot):
             traceback.print_exc()
             return False
 
-    async def fetch_positions(self) -> ([dict], float):
-        positions, balance = None, None
+    async def fetch_positions(self):
+        positions_fetched = None
         try:
-            positions_fetched, balance = await asyncio.gather(
-                self.cca.fetch_positions(), self.cca.fetch_balance()
-            )
-            if not hasattr(self, "uid") or not self.uid:
-                self.uid = balance["info"][0]["user"]
-                self.cca.uid = self.uid
-                self.ccp.uid = self.uid
-            balance = balance[self.quote]["total"]
+            positions_fetched = await self.cca.fetch_positions()
             positions = []
             for x in positions_fetched:
                 if x["contracts"] != 0.0:
@@ -169,11 +151,34 @@ class GateIOBot(Passivbot):
                     x["price"] = x["entryPrice"]
                     x["position_side"] = x["side"]
                     positions.append(x)
-            return positions, balance
+            return positions
         except Exception as e:
-            logging.error(f"error fetching positions and balance {e}")
-            print_async_exception(positions)
-            print_async_exception(balance)
+            logging.error(f"error fetching positions {e}")
+            print_async_exception(positions_fetched)
+            traceback.print_exc()
+            return False
+
+    async def fetch_balance(self):
+        balance_fetched = None
+        try:
+            balance_fetched = await self.cca.fetch_balance()
+            if not hasattr(self, "uid") or not self.uid:
+                self.uid = balance_fetched["info"][0]["user"]
+                self.cca.uid = self.uid
+                if self.ccp is not None:
+                    self.ccp.uid = self.uid
+            margin_mode_name = balance_fetched["info"][0]["margin_mode_name"]
+            self.log_once(f"account margin mode: {margin_mode_name}")
+            if margin_mode_name == "classic":
+                balance = float(balance_fetched[self.quote]["total"])
+            elif margin_mode_name == "multi_currency":
+                balance = float(balance_fetched["info"][0]["cross_available"])
+            else:
+                raise Exception(f"unknown margin_mode_name {balance_fetched}")
+            return balance
+        except Exception as e:
+            logging.error(f"error fetching balance {e}")
+            print_async_exception(balance_fetched)
             traceback.print_exc()
             return False
 
@@ -187,7 +192,7 @@ class GateIOBot(Passivbot):
                 body=json.dumps({"type": "allMids"}),
             )
             return {
-                coin2symbol(coin, self.quote): {
+                coin_to_symbol(coin, self.exchange): {
                     "bid": float(fetched[coin]),
                     "ask": float(fetched[coin]),
                     "last": float(fetched[coin]),
@@ -247,9 +252,34 @@ class GateIOBot(Passivbot):
                 break
             if fetched[0]["timestamp"] <= start_time:
                 break
-            logging.info(f"debug fetching pnls {ts_to_date_utc(fetched[-1]['timestamp'])}")
+            logging.info(f"debug fetching pnls {ts_to_date(fetched[-1]['timestamp'])}")
             offset += limit
         return sorted(all_fetched.values(), key=lambda x: x["timestamp"])
+
+    async def gather_fill_events(self, start_time=None, end_time=None, limit=None):
+        """Return canonical fill events for Gate.io (draft placeholder)."""
+        events = []
+        try:
+            fills = await self.fetch_pnls(start_time=start_time, end_time=end_time, limit=limit)
+        except Exception as exc:
+            logging.error(f"error gathering fill events (gateio) {exc}")
+            return events
+        for fill in fills:
+            events.append(
+                {
+                    "id": fill.get("id"),
+                    "timestamp": fill.get("timestamp"),
+                    "symbol": fill.get("symbol"),
+                    "side": fill.get("side"),
+                    "position_side": fill.get("position_side"),
+                    "qty": fill.get("amount") or fill.get("filled"),
+                    "price": fill.get("price"),
+                    "pnl": fill.get("pnl"),
+                    "fee": fill.get("fee"),
+                    "info": fill.get("info"),
+                }
+            )
+        return events
 
     async def fetch_pnl(
         self,
@@ -272,69 +302,26 @@ class GateIOBot(Passivbot):
             traceback.print_exc()
             return False
 
-    async def execute_cancellation(self, order: dict) -> dict:
-        return await self.execute_cancellations([order])
-
-    async def execute_cancellations(self, orders: [dict]) -> [dict]:
-        if not orders:
-            return []
-        res = None
+    def did_cancel_order(self, executed, order=None):
+        if isinstance(executed, list) and len(executed) == 1:
+            return self.did_cancel_order(executed[0], order)
         try:
-            res = await self.cca.cancel_orders([x["id"] for x in orders])
-            return res
-            cancellations = []
-            for order, elm in zip(orders, res):
-                if elm["status"] != "rejected":
-                    joined = order.copy()
-                    for k, v in elm.items():
-                        if k not in joined or not joined[k]:
-                            joined[k] = v
-                    cancellations.append(joined)
-            return cancellations
-        except Exception as e:
-            logging.error(f"error executing cancellations {e} {orders}")
-            print_async_exception(res)
-            traceback.print_exc()
-
-    def did_cancel_order(self, executed):
-        try:
-            return "status" in executed and executed["status"] != "rejected"
+            return executed.get("id", "") == order["id"] and executed.get("status", "") == "canceled"
         except:
             return False
 
-    async def execute_order(self, order: dict) -> dict:
-        return await self.execute_orders([order])
-
-    async def execute_orders(self, orders: [dict]) -> [dict]:
-        if len(orders) == 0:
-            return []
-        to_execute = []
-        for order in orders:
-            order_type = order["type"] if "type" in order else "limit"
-            params = {
-                "reduce_only": order["reduce_only"],
-            }
-            if order_type == "limit":
-                params["timeInForce"] = (
-                    "poc" if self.config["live"]["time_in_force"] == "post_only" else "gtc"
-                )
-            to_execute.append(
-                {
-                    "symbol": order["symbol"],
-                    "type": order_type,
-                    "side": order["side"],
-                    "amount": order["qty"],
-                    "price": order["price"],
-                    "params": params,
-                }
+    def get_order_execution_params(self, order: dict) -> dict:
+        # defined for each exchange
+        order_type = order["type"] if "type" in order else "limit"
+        params = {
+            "reduce_only": order["reduce_only"],
+            "text": order["custom_id"],
+        }
+        if order_type == "limit":
+            params["timeInForce"] = (
+                "poc" if require_live_value(self.config, "time_in_force") == "post_only" else "gtc"
             )
-        res = await self.cca.create_orders(to_execute)
-        return res
-        executed = []
-        for ex, order in zip(res, orders):
-            if "info" in ex and ex["status"] in ["closed", "open"]:
-                executed.append({**ex, **order})
-        return executed
+        return params
 
     def did_create_order(self, executed):
         try:
@@ -351,12 +338,10 @@ class GateIOBot(Passivbot):
                     "leverage": int(
                         min(
                             self.max_leverage[symbol],
-                            self.live_configs[symbol]["leverage"],
+                            self.config_get(["live", "leverage"], symbol=symbol),
                         )
                     )
                 }
-                if self.user_info["is_vault"]:
-                    params["vaultAddress"] = self.user_info["wallet_address"]
                 coros_to_call_margin_mode[symbol] = asyncio.create_task(
                     self.cca.set_margin_mode("cross", symbol=symbol, params=params)
                 )
@@ -379,7 +364,6 @@ class GateIOBot(Passivbot):
     async def update_exchange_config(self):
         pass
 
-    def calc_ideal_orders(self):
-        # hyperliquid needs custom price rounding
-        ideal_orders = super().calc_ideal_orders()
+    async def calc_ideal_orders(self):
+        ideal_orders = await super().calc_ideal_orders()
         return ideal_orders

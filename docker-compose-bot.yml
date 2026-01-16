@@ -4,6 +4,11 @@ services:
         image: passivbot:latest
         container_name: passivbot
         restart: unless-stopped
+        logging:
+            driver: json-file
+            options:
+                max-size: "10m"
+                max-file: "3"
         volumes:
             - ./:/app/
         working_dir: /app

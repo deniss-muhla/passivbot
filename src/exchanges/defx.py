@@ -8,7 +8,7 @@ import numpy as np
 import passivbot_rust as pbr
 from pure_funcs import (
     floatify,
-    ts_to_date_utc,
+    ts_to_date,
     calc_hash,
     shorten_custom_id,
 )
@@ -25,20 +25,52 @@ class DefxBot(Passivbot):
         self.hedge_mode = False
 
     def create_ccxt_sessions(self):
-        self.ccp = getattr(ccxt_pro, self.exchange)(
-            {
-                "apiKey": self.user_info["key"],
-                "secret": self.user_info["secret"],
-            }
-        )
+        if self.ws_enabled:
+            self.ccp = getattr(ccxt_pro, self.exchange)(
+                {
+                    "apiKey": self.user_info["key"],
+                    "secret": self.user_info["secret"],
+                    "enableRateLimit": True,
+                }
+            )
+        elif self.endpoint_override:
+            logging.info("Skipping Defx websocket session due to custom endpoint override.")
         self.cca = getattr(ccxt_async, self.exchange)(
             {
                 "apiKey": self.user_info["key"],
                 "secret": self.user_info["secret"],
+                "enableRateLimit": True,
             }
         )
-        self.ccp.options["defaultType"] = "swap"
+        if self.ws_enabled and self.ccp is not None:
+            self.ccp.options.update(self._build_ccxt_options())
+            self.ccp.options["defaultType"] = "swap"
+            self._apply_endpoint_override(self.ccp)
         self.cca.options["defaultType"] = "swap"
+        self.cca.options.update(self._build_ccxt_options())
+        self._apply_endpoint_override(self.cca)
+
+    async def fetch_wallet_collaterals(self):
+        fetched = None
+        try:
+            fetched = await self.cca.fetch2(
+                path="api/wallet/balance/collaterals",
+                api=["v1", "private"],  # tuple-like fallback
+                method="GET",
+                params={},
+            )
+            for i in range(len(fetched)):
+                for k in fetched[i]:
+                    try:
+                        fetched[i][k] = float(fetched[i][k])
+                    except:
+                        pass
+            return fetched
+        except Exception as e:
+            logging.error(f"error fetch_wallet_collaterals {e}")
+            print_async_exception(fetched)
+            traceback.print_exc()
+            return False
 
     def set_market_specific_settings(self):
         super().set_market_specific_settings()
@@ -53,21 +85,6 @@ class DefxBot(Passivbot):
             self.price_steps[symbol] = elm["precision"]["price"]
             self.c_mults[symbol] = elm["contractSize"]
             self.max_leverage[symbol] = int(elm["limits"]["leverage"]["max"])
-
-    async def watch_balance(self):
-        # TODO
-        return
-        while True:
-            try:
-                if self.stop_websocket:
-                    break
-                res = await self.ccp.watch_balance()
-                print("debug kkkk", res)
-                self.handle_balance_update(res)
-            except Exception as e:
-                logging.error(f"exception watch_balance {e}")
-                traceback.print_exc()
-                await asyncio.sleep(1)
 
     async def watch_orders(self):
         while True:
@@ -112,12 +129,9 @@ class DefxBot(Passivbot):
             return False
 
     async def fetch_positions(self):
-        fetched_positions, fetched_balance = None, None
+        fetched_positions = None
         try:
-            fetched_positions, fetched_balance = await asyncio.gather(
-                self.cca.fetch_positions(),
-                self.cca.fetch_balance(),
-            )
+            fetched_positions = await self.cca.fetch_positions()
             positions = []
             for p in fetched_positions:
                 positions.append(
@@ -131,13 +145,20 @@ class DefxBot(Passivbot):
                         },
                     }
                 )
-            balance = float(fetched_balance[self.quote]["total"]) + sum(
-                [float(p["info"]["marginAmount"]) for p in fetched_positions]
-            )
-            return positions, balance
+            return positions
         except Exception as e:
-            logging.error(f"error fetching positions and balance {e}")
+            logging.error(f"error fetching positions {e}")
             print_async_exception(fetched_positions)
+            traceback.print_exc()
+            return False
+
+    async def fetch_balance(self):
+        fetched_balance = None
+        try:
+            fetched_balance = await self.fetch_wallet_collaterals()
+            return sum([x["marginValue"] for x in fetched_balance])
+        except Exception as e:
+            logging.error(f"error fetching balance {e}")
             print_async_exception(fetched_balance)
             traceback.print_exc()
             return False
@@ -184,60 +205,37 @@ class DefxBot(Passivbot):
                 raise Exception(f"invalid side {res[i]}")
         return res
 
-    async def execute_orders(self, orders: dict) -> dict:
-        return await self.execute_multiple(orders, "execute_order")
-
-    async def execute_order(self, order: dict) -> dict:
-        # order_type = order["type"] if "type" in order else "limit"
-        order_type = "limit"  # only limit orders
-        reduce_only = False  # reduceOnly=True gives server error
-        params = {
-            "symbol": order["symbol"],
-            "type": order_type,
-            "side": order["side"],
-            "amount": abs(order["qty"]),
-            "price": order["price"],
-            "params": {
-                "timeInForce": "GTC",
-                "reduceOnly": reduce_only,
-            },
-        }
-        print(params)
-        executed = await self.cca.create_order(**params)
-        if "info" in executed and "orderId" in executed["info"]:
-            for k in ["price", "id", "side", "position_side"]:
-                if k not in executed or executed[k] is None:
-                    executed[k] = order[k]
-            executed["qty"] = executed["amount"] if executed["amount"] else order["qty"]
-            executed["timestamp"] = (
-                executed["timestamp"] if executed["timestamp"] else self.get_exchange_time()
-            )
-        return executed
-
-    async def execute_cancellation(self, order: dict) -> dict:
-        executed = None
+    async def gather_fill_events(self, start_time=None, end_time=None, limit=None):
+        """Return canonical fill events for dYdX/DeFX adapter (draft placeholder)."""
+        events = []
         try:
-            executed = await self.cca.cancel_order(order["id"], symbol=order["symbol"])
-            return {
-                "symbol": executed["symbol"],
-                "side": order["side"],
-                "id": executed["id"],
-                "position_side": order["position_side"],
-                "qty": order["qty"],
-                "price": order["price"],
-            }
-        except Exception as e:
-            logging.error(f"error cancelling order {order} {e}")
-            print_async_exception(executed)
-            traceback.print_exc()
-            return {}
+            fills = await self.fetch_pnls(start_time=start_time, end_time=end_time, limit=limit)
+        except Exception as exc:
+            logging.error(f"error gathering fill events (defx) {exc}")
+            return events
+        for fill in fills:
+            events.append(
+                {
+                    "id": fill.get("id"),
+                    "timestamp": fill.get("timestamp"),
+                    "symbol": fill.get("symbol"),
+                    "side": fill.get("side"),
+                    "position_side": fill.get("position_side"),
+                    "qty": fill.get("qty"),
+                    "price": fill.get("price"),
+                    "pnl": fill.get("pnl"),
+                    "fee": fill.get("fee"),
+                    "info": fill.get("info"),
+                }
+            )
+        return events
 
-    async def execute_cancellations(self, orders: [dict]) -> [dict]:
-        if len(orders) == 0:
-            return []
-        if len(orders) == 1:
-            return [await self.execute_cancellation(orders[0])]
-        return await self.execute_multiple(orders, "execute_cancellation")
+    def get_order_execution_params(self, order: dict) -> dict:
+        # defined for each exchange
+        return {
+            "timeInForce": "GTC",
+            "reduceOnly": reduce_only,
+        }
 
     async def determine_utc_offset(self, verbose=True):
         # returns millis to add to utc to get exchange timestamp
@@ -259,7 +257,7 @@ class DefxBot(Passivbot):
                     "leverage": int(
                         min(
                             self.max_leverage[symbol],
-                            self.live_configs[symbol]["leverage"],
+                            self.config_get(["live", "leverage"], symbol=symbol),
                             pbr.round_up(
                                 max(
                                     self.get_wallet_exposure_limit("long", symbol),

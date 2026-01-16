@@ -1,5 +1,6 @@
 from passivbot import Passivbot, logging
 from uuid import uuid4
+import passivbot_rust as pbr
 import ccxt.pro as ccxt_pro
 import ccxt.async_support as ccxt_async
 
@@ -7,16 +8,18 @@ import pprint
 import asyncio
 import traceback
 import numpy as np
+from utils import ts_to_date, utc_ms
+from config_utils import require_live_value
 from pure_funcs import (
     multi_replace,
     floatify,
-    ts_to_date_utc,
     calc_hash,
     determine_pos_side_ccxt,
     shorten_custom_id,
 )
-from njit_funcs import calc_diff
-from procedures import print_async_exception, utc_ms, assert_correct_ccxt_version
+
+calc_order_price_diff = pbr.calc_order_price_diff
+from procedures import print_async_exception, assert_correct_ccxt_version
 
 assert_correct_ccxt_version(ccxt=ccxt_async)
 
@@ -29,24 +32,63 @@ class OKXBot(Passivbot):
             "sell": {"long": "close_long", "short": "open_short"},
         }
         self.custom_id_max_length = 32
+        # Track whether dual-side/hedge mode is available; default to True.
+        self.okx_dual_side = True
+        self.okx_pm_account = False
 
     def create_ccxt_sessions(self):
-        self.ccp = getattr(ccxt_pro, self.exchange)(
-            {
-                "apiKey": self.user_info["key"],
-                "secret": self.user_info["secret"],
-                "password": self.user_info["passphrase"],
-            }
-        )
-        self.ccp.options["defaultType"] = "swap"
+        if self.ws_enabled:
+            self.ccp = getattr(ccxt_pro, self.exchange)(
+                {
+                    "apiKey": self.user_info["key"],
+                    "secret": self.user_info["secret"],
+                    "password": self.user_info["passphrase"],
+                    "enableRateLimit": True,
+                }
+            )
+            self.ccp.options.update(self._build_ccxt_options())
+            self.ccp.options["defaultType"] = "swap"
+            self._apply_endpoint_override(self.ccp)
+        elif self.endpoint_override:
+            logging.info("Skipping OKX websocket session due to custom endpoint override.")
         self.cca = getattr(ccxt_async, self.exchange)(
             {
                 "apiKey": self.user_info["key"],
                 "secret": self.user_info["secret"],
                 "password": self.user_info["passphrase"],
+                "enableRateLimit": True,
             }
         )
+        self.cca.options.update(self._build_ccxt_options())
         self.cca.options["defaultType"] = "swap"
+        self._apply_endpoint_override(self.cca)
+
+    async def _detect_account_config(self):
+        """
+        Inspect account configuration to detect portfolio margin (PM) and position mode.
+        Falls back silently if the endpoint is unavailable.
+        """
+        try:
+            cfg = await self.cca.private_get_account_config()
+            data = cfg.get("data", [{}])
+            data0 = data[0] if data else {}
+            pos_mode = str(data0.get("posMode", "")).lower()  # "long_short_mode" or "net_mode"
+            acct_lv = str(data0.get("acctLv", "")).lower()  # "pm" for portfolio margin accounts
+            if pos_mode == "net_mode":
+                self.okx_dual_side = False
+                self.hedge_mode = False
+            elif pos_mode == "long_short_mode":
+                self.okx_dual_side = True
+            # If unknown, keep default True and let later failures flip it off.
+            self.okx_pm_account = acct_lv == "pm"
+            if self.okx_pm_account:
+                logging.info(
+                    "OKX account detected as Portfolio Margin (PM); mode/leverage changes may be restricted."
+                )
+            if not self.okx_dual_side:
+                logging.info("OKX account is in net (one-way) mode; running without posSide/hedge.")
+        except Exception as e:
+            logging.warning(f"Unable to detect OKX account configuration: {e}")
 
     def set_market_specific_settings(self):
         super().set_market_specific_settings()
@@ -60,23 +102,6 @@ class OKXBot(Passivbot):
             self.qty_steps[symbol] = elm["precision"]["amount"]
             self.price_steps[symbol] = elm["precision"]["price"]
             self.c_mults[symbol] = elm["contractSize"]
-
-    async def watch_balance(self):
-        while True:
-            try:
-                if self.stop_websocket:
-                    break
-                res = await self.ccp.watch_balance()
-                res["USDT"]["total"] = float(
-                    [x for x in res["info"]["data"][0]["details"] if x["ccy"] == self.quote][0][
-                        "cashBal"
-                    ]
-                )
-                self.handle_balance_update(res)
-            except Exception as e:
-                print(f"exception watch_balance", e)
-                traceback.print_exc()
-                await asyncio.sleep(1)
 
     async def watch_orders(self):
         while True:
@@ -108,28 +133,53 @@ class OKXBot(Passivbot):
             traceback.print_exc()
             return False
 
-    async def fetch_positions(self) -> ([dict], float):
-        # also fetches balance
-        fetched_positions, fetched_balance = None, None
+    async def fetch_positions(self):
+        fetched_positions = None
         try:
-            fetched_positions, fetched_balance = await asyncio.gather(
-                self.cca.fetch_positions(),
-                self.cca.fetch_balance(),
-            )
-            for elm in fetched_balance["info"]["data"]:
-                for elm2 in elm["details"]:
-                    if elm2["ccy"] == self.quote:
-                        balance = float(elm2["cashBal"])
-                        break
+            fetched_positions = await self.cca.fetch_positions()
             fetched_positions = [x for x in fetched_positions if x["marginMode"] == "cross"]
             for i in range(len(fetched_positions)):
                 fetched_positions[i]["position_side"] = fetched_positions[i]["side"]
                 fetched_positions[i]["size"] = fetched_positions[i]["contracts"]
                 fetched_positions[i]["price"] = fetched_positions[i]["entryPrice"]
-            return fetched_positions, balance
+            return fetched_positions
         except Exception as e:
-            logging.error(f"error fetching positions and balance {e}")
+            logging.error(f"error fetching positions {e}")
             print_async_exception(fetched_positions)
+            traceback.print_exc()
+            return False
+
+    async def fetch_balance(self):
+        fetched_balance = None
+        try:
+            fetched_balance = await self.cca.fetch_balance()
+            balance = 0.0
+
+            is_multi_asset_mode = True
+            if len(fetched_balance["info"]["data"]) == 1:
+                if len(fetched_balance["info"]["data"][0]["details"]) == 1:
+                    if fetched_balance["info"]["data"][0]["details"][0]["ccy"] == self.quote:
+                        if not fetched_balance["info"]["data"][0]["details"][0]["collateralEnabled"]:
+                            is_multi_asset_mode = False
+
+            if is_multi_asset_mode:
+                for elm in fetched_balance["info"]["data"]:
+                    for elm2 in elm["details"]:
+                        if elm2["collateralEnabled"]:
+                            balance += float(elm2["cashBal"]) * (
+                                (
+                                    await self.cm.get_current_close(
+                                        self.coin_to_symbol(elm2["ccy"]), max_age_ms=10_000
+                                    )
+                                )
+                                if elm2["ccy"] != self.quote
+                                else 1.0
+                            )
+            else:
+                balance = float(fetched_balance["info"]["data"][0]["details"][0]["cashBal"])
+            return balance
+        except Exception as e:
+            logging.error(f"error fetching balance {e}")
             print_async_exception(fetched_balance)
             traceback.print_exc()
             return False
@@ -190,12 +240,37 @@ class OKXBot(Passivbot):
                 all_fetched[elm["id"]] = elm
             if len(fetched) < limit:
                 break
-            logging.info(f"debug fetching income {ts_to_date_utc(fetched[-1]['timestamp'])}")
+            logging.info(f"debug fetching income {ts_to_date(fetched[-1]['timestamp'])}")
             end_time = fetched[0]["timestamp"]
         return sorted(all_fetched.values(), key=lambda x: x["timestamp"])
         return sorted(
             [x for x in all_fetched.values() if x["pnl"] != 0.0], key=lambda x: x["timestamp"]
         )
+
+    async def gather_fill_events(self, start_time=None, end_time=None, limit=None):
+        """Return canonical fill events for OKX (draft placeholder)."""
+        events = []
+        try:
+            fills = await self.fetch_pnls(start_time=start_time, end_time=end_time, limit=limit)
+        except Exception as exc:
+            logging.error(f"error gathering fill events (okx) {exc}")
+            return events
+        for fill in fills:
+            events.append(
+                {
+                    "id": fill.get("id"),
+                    "timestamp": fill.get("timestamp"),
+                    "symbol": fill.get("symbol"),
+                    "side": fill.get("side"),
+                    "position_side": fill.get("position_side"),
+                    "qty": fill.get("amount"),
+                    "price": fill.get("price"),
+                    "pnl": fill.get("pnl"),
+                    "fee": fill.get("fee"),
+                    "info": fill.get("info"),
+                }
+            )
+        return events
 
     async def fetch_pnl(
         self,
@@ -236,61 +311,20 @@ class OKXBot(Passivbot):
             traceback.print_exc()
             return {}
 
-    async def execute_cancellations(self, orders: [dict]) -> [dict]:
-        return await self.execute_multiple(orders, "execute_cancellation")
-
-    async def execute_order(self, order: dict) -> dict:
-        return self.execute_orders([order])
-
-    async def execute_orders(self, orders: [dict]) -> [dict]:
-        if len(orders) == 0:
-            return []
-        to_execute = []
-        orders = orders
-        for order in orders:
-            to_execute.append(
-                {
-                    "type": "limit",
-                    "symbol": order["symbol"],
-                    "side": order["side"],
-                    "ordType": (
-                        "post_only"
-                        if self.config["live"]["time_in_force"] == "post_only"
-                        else "limit"
-                    ),
-                    "amount": abs(order["qty"]),
-                    "tdMode": "cross",
-                    "price": order["price"],
-                    "params": {
-                        "tag": self.broker_code,
-                        "posSide": order["position_side"],
-                        "clOrdId": order["custom_id"],
-                    },
-                }
-            )
-        executed = None
-        try:
-            executed = await self.cca.create_orders(to_execute)
-            return executed
-        except Exception as e:
-            logging.error(f"error executing orders {orders} {e}")
-            print_async_exception(executed)
-            traceback.print_exc()
-            return []
-
-        to_return = []
-        for order, res in zip(orders, executed):
-            try:
-                if "status" in res and res["status"] == "rejected":
-                    logging.info(f"order rejected: {res}")
-                for key in order:
-                    if key not in res or res[key] is None:
-                        res[key] = order[key]
-                to_return.append(res)
-            except Exception as e:
-                logging.error(f"error executing order {res} {e}")
-                traceback.print_exc()
-        return to_return
+    def get_order_execution_params(self, order: dict) -> dict:
+        # defined for each exchange
+        params = {
+            "postOnly": require_live_value(self.config, "time_in_force") == "post_only",
+            "reduceOnly": order["reduce_only"],
+            "hedged": True,
+            "tag": self.broker_code,
+            "clOrdId": order["custom_id"],
+            "marginMode": "cross",
+        }
+        # Only send positionSide when dual-side mode is confirmed.
+        if self.okx_dual_side:
+            params["positionSide"] = order["position_side"]
+        return params
 
     async def update_exchange_config_by_symbols(self, symbols: [str]):
         coros_to_call_margin_mode = {}
@@ -300,7 +334,7 @@ class OKXBot(Passivbot):
                     self.cca.set_margin_mode(
                         "cross",
                         symbol=symbol,
-                        params={"lever": int(self.live_configs[symbol]["leverage"])},
+                        params={"lever": int(self.config_get(["live", "leverage"], symbol=symbol))},
                     )
                 )
             except Exception as e:
@@ -314,41 +348,61 @@ class OKXBot(Passivbot):
             except Exception as e:
                 if '"code":"59107"' in e.args[0]:
                     to_print += f" cross mode and leverage: {res} {e}"
+                elif '"code":"51039"' in e.args[0]:
+                    logging.warning(
+                        f"{symbol}: unable to adjust margin mode/leverage (possibly PM or open positions): {e}"
+                    )
+                    continue
                 else:
                     logging.error(f"{symbol} error setting cross mode {res} {e}")
             if to_print:
                 logging.info(f"{symbol}: {to_print}")
 
     async def update_exchange_config(self):
+        # Detect current account mode; adjust expectations before attempting changes.
+        await self._detect_account_config()
+        if not self.okx_dual_side:
+            # One-way mode: skip attempting to set hedge mode; orders will omit posSide.
+            return
         try:
             res = await self.cca.set_position_mode(True)
             logging.info(f"set hedge mode {res}")
         except Exception as e:
-            if '"code":"59000"' in e.args[0]:
+            msg = e.args[0] if e.args else ""
+            if '"code":"59000"' in msg:
                 logging.info(f"margin mode: {e}")
+            elif '"code":"51039"' in msg or '"code":"51000"' in msg:
+                # Cannot switch to dual/hedge (often due to PM or open orders/positions).
+                self.okx_dual_side = False
+                self.hedge_mode = False
+                logging.warning(
+                    "OKX rejected hedge/dual-side switch (51039/51000). Continuing in net mode without posSide."
+                )
             else:
                 logging.error(f"error setting hedge mode {e}")
 
-    def calc_ideal_orders(self):
+    async def calc_ideal_orders(self):
         # okx has max 100 open orders. Drop orders whose pprice diff is greatest.
-        ideal_orders = super().calc_ideal_orders()
+        ideal_orders = await super().calc_ideal_orders()
         ideal_orders_tmp = []
         for s in ideal_orders:
             for x in ideal_orders[s]:
-                ideal_orders_tmp.append({**x, **{"symbol": s}})
-        ideal_orders_tmp = sorted(
-            ideal_orders_tmp,
-            key=lambda x: calc_diff(x["price"], self.get_last_price(x["symbol"])),
-        )[:100]
+                ideal_orders_tmp.append(
+                    (
+                        calc_order_price_diff(
+                            x["side"],
+                            x["price"],
+                            await self.cm.get_current_close(s, max_age_ms=10_000),
+                        ),
+                        {**x, **{"symbol": s}},
+                    )
+                )
+        ideal_orders_tmp = [x[1] for x in sorted(ideal_orders_tmp, key=lambda x: x[0])][:100]
         ideal_orders = {symbol: [] for symbol in self.active_symbols}
         for x in ideal_orders_tmp:
             ideal_orders[x["symbol"]].append(x)
         return ideal_orders
 
-    def format_custom_ids(self, orders: [dict]) -> [dict]:
-        # okx needs broker code at the beginning of the custom_id
-        new_orders = []
-        for order in orders:
-            order["custom_id"] = (self.broker_code + uuid4().hex)[: self.custom_id_max_length]
-            new_orders.append(order)
-        return new_orders
+    def format_custom_id_single(self, order_type_id: int) -> str:
+        formatted = super().format_custom_id_single(order_type_id)
+        return (self.broker_code + formatted)[: self.custom_id_max_length]
