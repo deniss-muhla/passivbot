@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+
+if [ -z "${BASH_VERSION:-}" ]; then
+    if command -v bash >/dev/null 2>&1; then
+        exec bash "$0" "$@"
+    fi
+    echo "This script requires bash. Try: bash $0" >&2
+    exit 1
+fi
 # Optional safer updater which can run a short backtest smoke-test *before* restarting live.
 #
 # By default, it does NOT run a backtest (RUN_BACKTEST=0), because backtests may download OHLCV
