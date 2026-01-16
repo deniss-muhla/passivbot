@@ -37,7 +37,7 @@ echo "==> Updating git working tree"
 git pull --ff-only
 
 echo "==> Building image"
-docker compose -f "$COMPOSE_LIVE" build
+docker compose -f "$COMPOSE_LIVE" build --pull
 
 if [[ "$RUN_BACKTEST" == "1" ]]; then
     echo "==> Running backtest smoke-test"

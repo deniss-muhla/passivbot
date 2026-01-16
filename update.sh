@@ -24,8 +24,11 @@ docker stop passivbot >/dev/null 2>&1 || true
 echo "==> Updating git working tree"
 git pull --ff-only
 
-echo "==> Building and starting"
-docker compose -f "$COMPOSE_FILE" up -d --build --remove-orphans
+echo "==> Building (pulling base images)"
+docker compose -f "$COMPOSE_FILE" build --pull
+
+echo "==> Starting"
+docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
 
 echo "==> Pruning dangling images (safe)"
 docker image prune -f
