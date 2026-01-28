@@ -382,9 +382,8 @@ Cargo.lock
 /backtests
 /historical_data
 /results*
-/configs
 /reports
 /api-keys.json
 /caches
 /optimize_results
-
+!/configs/bybit
