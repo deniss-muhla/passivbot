@@ -113,7 +113,7 @@
         "price_distance_threshold": 0.002,
         "recv_window_ms": 5000,
         "time_in_force": "good_till_cancelled",
-        "user": "bybit_test",
+        "user": "bybit_passivbot",
         "warmup_jitter_seconds": 30,
         "warmup_ratio": 0.3,
         "hedge_mode": true,
